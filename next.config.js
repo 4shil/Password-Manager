@@ -1,6 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Allow production builds to succeed even if ESLint errors exist.
+  // We still run ESLint locally and in CI, but hosting platforms shouldn't fail the build.
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   async headers() {
     return [
       {
