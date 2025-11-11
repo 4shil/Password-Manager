@@ -53,12 +53,16 @@ export function VaultList() {
             item.enc_payload,
             item.iv
           );
+
+          // Ensure TypeScript treats the decrypted payload as an object
+          const payloadObj = (payload ?? {}) as VaultItemPayload;
+
           return {
             id: item.id,
             title: item.title,
             created_at: item.created_at,
             updated_at: item.updated_at,
-            ...payload,
+            ...payloadObj,
           } as DecryptedVaultItem;
         })
       );
