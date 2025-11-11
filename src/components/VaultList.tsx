@@ -10,7 +10,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { toast } from './ui/use-toast';
 import { Search, Plus, Loader2 } from 'lucide-react';
-import type { VaultItem, DecryptedVaultItem } from '@/lib/validators';
+import type { VaultItem, DecryptedVaultItem, VaultItemPayload } from '@/lib/validators';
 
 export function VaultList() {
   const [items, setItems] = useState<DecryptedVaultItem[]>([]);
@@ -48,7 +48,7 @@ export function VaultList() {
       // Decrypt all items
       const decrypted = await Promise.all(
         (data as VaultItem[]).map(async (item) => {
-          const payload = await decryptPayload(
+          const payload = await decryptPayload<VaultItemPayload>(
             vaultKey,
             item.enc_payload,
             item.iv
