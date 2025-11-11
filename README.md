@@ -1,377 +1,183 @@
 # Zero-Knowledge Password Manager
 
 A production-ready, secure password manager built with **Next.js 14**, **TypeScript**, **Tailwind CSS**, **shadcn/ui**, and **Supabase**. Features client-side encryption ensuring zero-knowledge security - your plaintext passwords never leave your browser.
+# Zero‑Knowledge Password Manager
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue)
-![Next.js](https://img.shields.io/badge/Next.js-14.2-black)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue) ![Next.js](https://img.shields.io/badge/Next.js-14.2-black)
 
-## 🔒 Security Model
+A secure, user-focused password manager built with Next.js and client-side cryptography. This project follows a zero‑knowledge model: encryption and decryption happen in the browser and plaintext secrets are never sent to the server.
 
-### Zero-Knowledge Architecture
+This README highlights the core ideas, how to run the project locally, and where to look if you want to contribute or audit the crypto code.
 
-1. **Master Password**: Never sent to server, never stored anywhere
-2. **Key Encryption Key (KEK)**: Derived from master password using PBKDF2-SHA256 (200,000 iterations)
-3. **Vault Key (VK)**: Random 256-bit AES key, encrypted with KEK
-4. **Vault Items**: Each encrypted with AES-256-GCM using VK
+## Quick overview
 
-**Data Flow:**
+- Tech: Next.js 14, TypeScript, Tailwind CSS, shadcn/ui
+- Backend: Supabase (Auth + Postgres)
+- Crypto: PBKDF2-SHA256 for key derivation, AES-256-GCM for authenticated encryption
+- Security model: Master password never leaves the client; a Vault Key (VK) is wrapped with a KEK derived from the master password
 
-- **Signup**: Master Password → PBKDF2 → KEK → Wraps VK → Store wrapped VK on server
-- **Login**: Fetch wrapped VK → Master Password → PBKDF2 → KEK → Unwrap VK → Cache in memory
-- **Encrypt Item**: Plaintext → AES-GCM(VK) → Ciphertext → Send to server
-- **Decrypt Item**: Fetch ciphertext → AES-GCM-Decrypt(VK) → Plaintext (browser only)
+## Why this project exists
 
-### What's Encrypted
+It’s designed for people who want simple, auditable password storage with strong client-side encryption. The goal is a lean vault app that demonstrates zero‑knowledge primitives while still being usable in daily workflows.
 
-- ✅ Password (always)
-- ✅ Username
-- ✅ URL
-- ✅ Notes
-- ✅ Custom fields
-- ⚠️ Title (plaintext for search/UX - see "Full ZK Mode" below)
+## Security model (short)
 
-### Security Features
+- Master password: only used client-side to derive the Key Encryption Key (KEK)
+- VK (Vault Key): a random 256‑bit AES key encrypted (wrapped) with the KEK and stored server-side
+- Vault items: encrypted with AES‑256‑GCM using the VK
+- Titles are plaintext by default (for UX/search); there is a documented path to encrypt titles for a full ZK mode
 
-- **PBKDF2-SHA256** with 200,000+ iterations for key derivation
-- **AES-256-GCM** authenticated encryption
-- **Unique IV** for every encryption operation
-- **Idle auto-lock** after 15 minutes (configurable)
-- **Manual lock** button
-- **CSP headers** restricting connections
-- **Row-Level Security** in Supabase
-- **No console logs** of sensitive data in production
+Summary data flow:
 
-## 🚀 Quick Start
+- Signup: client derives KEK from master password → generates VK → wraps VK with KEK → sends wrapped VK to server
+- Login/unlock: client fetches wrapped VK → derives KEK from master password → unwraps VK → uses VK in memory to encrypt/decrypt items
 
-### Prerequisites
+Security properties include unique IVs per item, authenticated encryption, idle auto‑lock, and Supabase row‑level security.
 
-- **Node.js** 18+ and npm/yarn/pnpm
-- **Supabase** account (free tier works)
+## Quick start (local development)
 
-### 1. Clone and Install
+Prerequisites:
+- Node.js 18+ and a package manager (npm, yarn, or pnpm)
+- A Supabase project (free tier is fine)
+
+1) Clone and install
 
 ```powershell
-git clone <your-repo-url> zero-knowledge-password-manager
-cd zero-knowledge-password-manager
+git clone <your-repo-url> password-manager
+cd password-manager
 npm install
 ```
 
-### 2. Set Up Supabase
+2) Configure Supabase
 
-1. Create a new project at [supabase.com](https://supabase.com)
-2. Go to **SQL Editor** and run the migration:
-   ```sql
-   # Copy content from supabase/migrations/001_init_schema.sql
-   ```
-3. Note your **Project URL** and **Anon Key** from Settings → API
+- Create a Supabase project and run the SQL migration found at `supabase/migrations/001_init_schema.sql`.
+- From the Supabase dashboard, copy your Project URL and Anon Key.
 
-### 3. Configure Environment
+3) Configure environment
 
-Copy `.env.local.example` to `.env.local`:
+Copy the example env file and update values:
 
 ```powershell
 copy .env.local.example .env.local
 ```
 
-**The file already contains your provided credentials:**
+Edit `.env.local` and set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` with your Supabase values.
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://vcyheqaywyuzyczjrcfo.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-### 4. Run Development Server
+4) Run locally
 
 ```powershell
 npm run dev
+
+# Open http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
-
-### 5. Build for Production
+5) Build for production
 
 ```powershell
 npm run build
 npm run start
 ```
 
-## 📁 Project Structure
-
-```
-src/
-├── app/
-│   ├── layout.tsx              # Root layout with theme provider
-│   ├── page.tsx                # Landing page
-│   ├── login/page.tsx          # Login page
-│   ├── signup/page.tsx         # Signup with master password setup
-│   └── app/                    # Protected vault application
-│       ├── layout.tsx          # App shell (header, sidebar)
-│       ├── page.tsx            # Vault item list
-│       └── unlock/page.tsx     # Master password unlock prompt
-├── components/
-│   ├── ui/                     # shadcn/ui components
-│   ├── ThemeProvider.tsx       # next-themes wrapper
-│   ├── ThemeToggle.tsx         # Light/dark mode toggle
-│   ├── Header.tsx              # App header with search & lock
-│   ├── VaultList.tsx           # List of vault items
-│   ├── VaultItemCard.tsx       # Individual item display
-│   ├── VaultEditorDialog.tsx   # Create/edit vault item dialog
-│   ├── PasswordGenerator.tsx   # Secure password generator
-│   └── CopyButton.tsx          # Copy to clipboard button
-├── lib/
-│   ├── crypto/
-│   │   ├── derive.ts           # PBKDF2 key derivation
-│   │   ├── aes.ts              # AES-GCM encryption/decryption
-│   │   ├── keys.ts             # Vault key generation & wrapping
-│   │   └── memory.ts           # In-memory VK cache with timeout
-│   ├── supabase/
-│   │   ├── client.ts           # Browser Supabase client
-│   │   ├── server.ts           # Server Supabase client
-│   │   └── database.types.ts   # Generated types
-│   ├── utils.ts                # Base64, safe JSON helpers
-│   ├── validators.ts           # Zod schemas
-│   └── cn.ts                   # Tailwind merge utility
-├── styles/
-│   └── theme.css               # OKLCH color tokens
-└── supabase/
-    └── migrations/
-        └── 001_init_schema.sql # Database schema with RLS
-```
-
-## 🎨 Theme & Design
-
-The app uses **OKLCH color space** for consistent, accessible colors across light and dark modes.
-
-- **Light Mode**: High contrast, clean whites
-- **Dark Mode**: True dark theme with reduced eye strain
-- **System-aware**: Automatically follows OS preference
-- **Persistent**: Theme choice saved to localStorage
-
-All colors defined in `src/styles/theme.css` using CSS custom properties.
-
-## 🧪 Testing
-
-```powershell
-# Run unit tests
-npm run test
-
-# Watch mode
-npm run test:watch
-
-# Type checking
-npm run typecheck
-
-# Linting
-npm run lint
-npm run lint:fix
-
-# Format code
-npm run format
-```
-
-### Test Coverage
-
-- ✅ Crypto utilities (PBKDF2, AES-GCM, key wrapping)
-- ✅ Base64 encoding/decoding
-- ✅ Password generation
-- ✅ Form validation schemas
-
-## 🔐 Usage Workflow
-
-### First Time Setup
-
-1. **Sign Up** with email/password (Supabase auth)
-2. **Create Master Password** (distinct from login password)
-   - Minimum 12 characters
-   - Used to derive encryption keys
-   - **Never** recoverable - write it down safely!
-3. System generates Vault Key (VK) and encrypts it with your master password
-
-### Daily Use
-
-1. **Log In** with email/password
-2. **Unlock Vault** with master password
-3. **Add/Edit/Delete** password entries
-4. **Copy** passwords with one click
-5. **Lock** manually or wait for auto-lock (15 min)
-
-### Password Generator
+## Project structure (essential parts)
 
-- Length: 8-128 characters
-- Options: lowercase, uppercase, digits, symbols
-- Cryptographically secure (`crypto.getRandomValues`)
-- Live preview and copy
+- `src/app/` — Next.js routes + protected app shell
+- `src/components/` — UI components and dialogs
+- `src/lib/crypto/` — PBKDF2, AES-GCM, key wrapping, in-memory VK cache (review this for security)
+- `src/lib/supabase/` — supabase clients and types
+- `supabase/migrations/001_init_schema.sql` — DB schema including RLS policies
 
-## 📊 Database Schema
+## Scripts
 
-### `user_keys` Table
+- `npm run dev` — start dev server
+- `npm run build` — production build
+- `npm run start` — start built app
+- `npm run test` — unit tests
+- `npm run lint` / `npm run lint:fix` — linting
+- `npm run format` — code formatting
 
-Stores wrapped vault key per user:
+## Testing and validation
 
-| Column              | Type | Description                             |
-| ------------------- | ---- | --------------------------------------- |
-| `user_id`           | UUID | FK to auth.users                        |
-| `kdf`               | TEXT | Key derivation function (pbkdf2-sha256) |
-| `kdf_iterations`    | INT  | Iteration count (200,000+)              |
-| `salt`              | TEXT | Base64 salt for KEK derivation          |
-| `vault_key_wrapped` | TEXT | AES-GCM encrypted VK                    |
-| `vk_iv`             | TEXT | IV for VK wrapping                      |
+Unit tests exist for core crypto utilities (PBKDF2, AES‑GCM, key wrapping), base64 helpers, and validators. Run `npm run test` to execute the test suite.
 
-### `vault_items` Table
+If you plan to audit or ship this code, run the tests and add test vectors (NIST/RFC) for PBKDF2/AES functions.
 
-Stores encrypted password entries:
+## Deployment
 
-| Column        | Type      | Description                    |
-| ------------- | --------- | ------------------------------ |
-| `id`          | UUID      | Primary key                    |
-| `user_id`     | UUID      | FK to auth.users               |
-| `title`       | TEXT      | Plaintext title (for search)   |
-| `enc_payload` | TEXT      | AES-GCM encrypted JSON payload |
-| `iv`          | TEXT      | Unique IV for this item        |
-| `deleted_at`  | TIMESTAMP | Soft delete timestamp          |
+Recommended: Vercel — connect the repo and set the environment variables shown above.
 
-**RLS Policies**: Users can only access their own data.
+Other options: Netlify, Docker, or any Node host that supports Next.js. For production, ensure HTTPS and secure environment variable handling.
 
-## 🚢 Deployment
+Note: The project will be deployed soon — a public preview/demo is planned and will be shared once available.
 
-### Vercel (Recommended)
+## Planned & Wanted Features
 
-1. Push code to GitHub
-2. Import project in [Vercel](https://vercel.com)
-3. Add environment variables:
-   ```
-   NEXT_PUBLIC_SUPABASE_URL=<your-url>
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-key>
-   ```
-4. Deploy!
+These are the features and improvements we plan to implement. They reflect user requests and common vault functionality that will be added in upcoming releases.
 
-### Other Platforms
+### Full Zero‑Knowledge Mode (planned)
 
-- **Netlify**: Works with Next.js adapter
-- **Self-hosted**: Use `npm run build && npm run start`
-- **Docker**: Create Dockerfile with Node 18+ base image
+To reach a full zero‑knowledge UX (encrypting titles and metadata):
 
-## 🔧 Configuration
+1. Add `enc_title` and `title_iv` columns to the schema and update RLS accordingly.
+2. Update `VaultEditorDialog` to encrypt the title client-side before saving.
+3. Store the encrypted title server-side and only fetch/decrypt titles in the client when needed.
+4. Implement client-side fuzzy search over decrypted titles (or encrypted indexes) if needed.
 
-### Idle Timeout
+### Planned features (shortlist)
 
-Default: 15 minutes (900,000 ms)
+- Import/Export: Encrypted vault backup and restore (local JSON file, encrypted with VK).
+- Tags and folders: Encrypted metadata stored inside each entry's payload.
+- TOTP / 2FA codes: Securely store and display rotating codes for accounts.
+- Passkey / WebAuthn: Optional faster unlocks using platform authenticators.
+- Secure notes: Longer-form encrypted text documents in the vault.
+- Password breach checking: k‑anonymity integration with HaveIBeenPwned (local hashing to preserve privacy).
+- Password strength meter: Client-side password strength estimation and suggestions.
+- Browser extension: Sync and quick-fill features via a WebExtension.
+- Mobile apps / PWA: Offline-first mobile experience and native app wrappers.
+- Argon2id KDF (WASM): Optional stronger KDF for users who want it, via a WASM implementation.
 
-Change in `.env.local`:
+### Advanced / Nice-to-have
 
-```env
-NEXT_PUBLIC_IDLE_TIMEOUT_MS=600000  # 10 minutes
-```
+- Encrypted sharing between users (using public-key envelopes).
+- Encrypted, searchable indexes for faster client-side search without revealing plaintext to the server.
+- Multi-device secure sync improvements and conflict resolution UI.
 
-### PBKDF2 Iterations
+If you'd like any of these prioritized or expanded into issues, I can open GitHub issues and draft acceptance criteria and tests for each.
 
-Default: 200,000 iterations
+## Configuration highlights
 
-Increase for more security (slower):
+- Idle lock timeout: `NEXT_PUBLIC_IDLE_TIMEOUT_MS` (default: 900000 = 15 minutes)
+- PBKDF2 iterations: default is 200,000 (adjust for security/performance tradeoffs)
 
-```typescript
-// src/lib/crypto/derive.ts
-const DEFAULT_ITERATIONS = 300000;
-```
+## Notes for reviewers / contributors
 
-## 🔮 Future Enhancements
+- Crypto code is intentionally small and explicit. If you review, pay special attention to:
+  - correct derivation (salt handling, iterations)
+  - IV uniqueness and storage
+  - memory lifetime of the unwrapped VK (it should only live in memory and be cleared on lock)
 
-### Full Zero-Knowledge Mode
+- For full zero‑knowledge (encrypt titles), see the planned enhancement in the docs and the `Full Zero‑Knowledge Mode` section in the code comments.
 
-Encrypt `title` field client-side:
+## Contributing
 
-1. Modify schema to add `enc_title` and `title_iv` columns
-2. Update `VaultEditorDialog` to encrypt title before saving
-3. Decrypt titles client-side when loading vault
-4. Implement client-side fuzzy search over decrypted titles
-
-### Advanced Features
-
-- [ ] **Import/Export** encrypted vault backup (JSON file)
-- [ ] **Tags/Folders** (stored in encrypted payload)
-- [ ] **TOTP/2FA codes** with timer
-- [ ] **Passkey/WebAuthn** support for quick unlock
-- [ ] **Secure notes** (encrypted text documents)
-- [ ] **Password breach check** (via HaveIBeenPwned API, k-anonymity)
-- [ ] **Password strength meter**
-- [ ] **Browser extension** (WebExtension API)
-- [ ] **Mobile apps** (React Native or PWA)
-- [ ] **Argon2id** key derivation (via WASM)
-
-## 🛡️ Security Best Practices
-
-### For Users
-
-- ✅ Use a **strong, unique** master password
-- ✅ **Write down** your master password securely (paper, safe)
-- ✅ Enable **2FA** on your Supabase auth email
-- ✅ **Lock** the vault when stepping away
-- ❌ **Never** share your master password
-- ❌ **Don't** reuse your login password as master password
-
-### For Developers
-
-- ✅ **Audit** crypto code carefully
-- ✅ **Test** with known test vectors (NIST, RFC examples)
-- ✅ **Never log** plaintext secrets (even in dev mode)
-- ✅ **Use HTTPS** everywhere (Vercel provides automatically)
-- ✅ **Keep dependencies updated** (run `npm audit`)
-- ✅ **Review** Supabase RLS policies regularly
-- ❌ **Don't** disable CSP headers
-- ❌ **Don't** store VK in localStorage (only memory)
-
-## 🐛 Troubleshooting
-
-### "Failed to unwrap vault key"
-
-- **Cause**: Incorrect master password
-- **Fix**: Re-enter correct master password
-
-### "Vault is locked"
-
-- **Cause**: Idle timeout or manual lock
-- **Fix**: Click "Unlock" and re-enter master password
-
-### TypeScript errors after install
-
-- **Cause**: Missing `@types` packages
-- **Fix**: Run `npm install` again, ensure `@types/node` is installed
-
-### Supabase connection errors
-
-- **Cause**: Incorrect env variables or network issues
-- **Fix**: Verify `.env.local` credentials, check Supabase dashboard status
-
-## 📜 License
-
-MIT License - see [LICENSE](LICENSE) file for details.
-
-## 🤝 Contributing
-
-Contributions welcome! Please:
+Contributions are welcome. Typical flow:
 
 1. Fork the repo
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a branch: `git checkout -b feature/meaningful-name`
+3. Open a PR with a clear description and testing notes
 
-## 📧 Support
+If you change crypto behavior, include tests and a short security rationale in the PR description.
 
-- **Issues**: [GitHub Issues](https://github.com/your-username/zk-password-manager/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-username/zk-password-manager/discussions)
+## License
 
-## ✨ Acknowledgments
+MIT — see the `LICENSE` file.
 
-- Built with [Next.js](https://nextjs.org/)
-- UI components from [shadcn/ui](https://ui.shadcn.com/)
-- Auth and database by [Supabase](https://supabase.com/)
-- Icons from [Lucide](https://lucide.dev/)
-- Inspired by zero-knowledge principles from [Bitwarden](https://bitwarden.com/) and [1Password](https://1password.com/)
+## Security disclaimer
+
+This project demonstrates strong client-side encryption, but it has not undergone a formal security audit. Do not use this code for critical production secrets without appropriate review and testing. If you plan to deploy for sensitive data, consider a professional security audit.
 
 ---
 
-**⚠️ Security Disclaimer**: This is a demonstration project. While it implements strong cryptographic principles, it has not undergone professional security audit. Use at your own risk for production data. Always maintain backups of critical passwords.
+If you want, I can:
 
-**Made with 🔐 for privacy-conscious users**
+- show the full updated `README.md` content here, or
+- adjust tone / length further (shorter summary, longer developer guide, or a one‑page README for end users)
