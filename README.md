@@ -43,7 +43,7 @@ Prerequisites:
 1) Clone and install
 
 ```powershell
-git clone <your-repo-url> password-manager
+git clone (https://github.com/4shil/Password-Manager/)
 cd password-manager
 npm install
 ```
