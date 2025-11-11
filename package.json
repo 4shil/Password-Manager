@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "A secure zero-knowledge password manager with client-side encryption",
   "private": true,
+  "engines": {
+    "node": "18.x"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
