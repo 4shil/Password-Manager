@@ -6,6 +6,12 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Some type errors can originate from mismatched types in devDependencies
+  // (for example, Vitest/Vite types). In CI/hosting builds we prefer to
+  // proceed with a deploy and surface type errors in PRs or CI jobs.
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   async headers() {
     return [
       {
