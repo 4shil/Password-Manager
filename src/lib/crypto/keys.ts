@@ -59,7 +59,7 @@ export async function wrapVaultKey(
     kek,
     {
       name: AES_ALGORITHM,
-      iv: iv,
+      iv: iv as unknown as BufferSource,
     }
   );
 

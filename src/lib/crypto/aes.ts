@@ -47,7 +47,9 @@ export async function encryptPayload(
   const ciphertext = await crypto.subtle.encrypt(
     {
       name: AES_ALGORITHM,
-      iv: iv,
+  // Web Crypto prefers BufferSource (ArrayBuffer or ArrayBufferView).
+  // Cast to BufferSource to satisfy TypeScript across lib versions.
+  iv: iv as unknown as BufferSource,
       tagLength: TAG_LENGTH,
     },
     vaultKey,
@@ -121,7 +123,7 @@ export async function encryptString(
   const ciphertext = await crypto.subtle.encrypt(
     {
       name: AES_ALGORITHM,
-      iv: iv,
+      iv: iv as unknown as BufferSource,
       tagLength: TAG_LENGTH,
     },
     key,
