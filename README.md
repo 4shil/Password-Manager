@@ -177,7 +177,4 @@ This project demonstrates strong client-side encryption, but it has not undergon
 
 ---
 
-If you want, I can:
 
-- show the full updated `README.md` content here, or
-- adjust tone / length further (shorter summary, longer developer guide, or a one‑page README for end users)
