@@ -1,4 +1,5 @@
-@import './theme.css';
+/* Use the correct relative path to the shared theme tokens */
+@import '../styles/theme.css';
 
 @tailwind base;
 @tailwind components;

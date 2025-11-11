@@ -4,7 +4,7 @@
   "description": "A secure zero-knowledge password manager with client-side encryption",
   "private": true,
   "engines": {
-    "node": "18.x"
+    "node": "22.x"
   },
   "scripts": {
     "dev": "next dev",
