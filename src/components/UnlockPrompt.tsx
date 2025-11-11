@@ -72,9 +72,9 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
 
       // Unwrap vault key
       const vaultKey = await unwrapVaultKey(
-        kek,
         keyData.vault_key_wrapped,
-        keyData.iv
+        keyData.iv,
+        kek
       );
 
       // Store in memory
