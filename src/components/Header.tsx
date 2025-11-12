@@ -1,5 +1,6 @@
-'use client';
+ 'use client';
 
+import { useState } from 'react';
 import { Button } from './ui/button';
 import { ThemeToggle } from './ThemeToggle';
 import { Lock, LogOut } from 'lucide-react';
@@ -14,6 +15,7 @@ interface HeaderProps {
 
 export function Header({ onLock }: HeaderProps) {
   const router = useRouter();
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const handleLock = () => {
     lockVault();
@@ -25,20 +27,36 @@ export function Header({ onLock }: HeaderProps) {
   };
 
   const handleLogout = async () => {
+    if (loggingOut) return; // prevent duplicate clicks
+    setLoggingOut(true);
     try {
       lockVault();
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Sign out error:', error);
+        toast({
+          title: 'Error',
+          description: error.message || 'Failed to log out',
+          variant: 'destructive',
+        });
+        setLoggingOut(false);
+        return;
+      }
+
       router.push('/login');
       toast({
         title: 'Logged out',
         description: 'You have been logged out successfully',
       });
-    } catch (err) {
+    } catch (err: any) {
+      console.error('Unexpected sign out error:', err);
       toast({
         title: 'Error',
-        description: 'Failed to log out',
+        description: err?.message || 'Failed to log out',
         variant: 'destructive',
       });
+    } finally {
+      setLoggingOut(false);
     }
   };
 
