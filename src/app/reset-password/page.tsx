@@ -1,4 +1,7 @@
-'use client';
+"use client";
+
+// This page uses client-only hooks and must not be prerendered
+export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';

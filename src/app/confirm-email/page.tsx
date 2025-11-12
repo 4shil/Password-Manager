@@ -1,4 +1,7 @@
-'use client';
+"use client";
+
+// Prevent Next.js from prerendering this page (it relies on client-only hooks)
+export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
