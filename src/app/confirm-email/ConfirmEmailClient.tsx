@@ -16,14 +16,45 @@ export default function ConfirmEmailClient() {
   useEffect(() => {
     const confirmEmail = async () => {
       try {
-        // Get the token from URL hash (Supabase redirects with hash params)
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const accessToken = hashParams.get('access_token');
-        const type = hashParams.get('type');
+        // Support both hash params (access_token in fragment) and query params (OAuth code)
+        const searchParams = new URLSearchParams(window.location.search);
+        const queryCode = searchParams.get('code');
+        let accessToken: string | null = null;
+        let type: string | null = null;
+
+        if (queryCode) {
+          // Try to exchange OAuth-style code for a session using available supabase client helpers.
+          try {
+            // Preferred: exchangeCodeForSession may exist in some supabase-js versions
+            if (typeof (supabase.auth as any).exchangeCodeForSession === 'function') {
+              const resp = await (supabase.auth as any).exchangeCodeForSession({ code: queryCode });
+              if (resp?.error) throw resp.error;
+              accessToken = resp?.data?.session?.access_token ?? null;
+              // type is not provided by code flow; assume signup for email confirmation
+              type = 'signup';
+            } else if (typeof (supabase.auth as any).getSessionFromUrl === 'function') {
+              // Some clients expose getSessionFromUrl to parse the current URL
+              const resp = await (supabase.auth as any).getSessionFromUrl();
+              accessToken = resp?.data?.session?.access_token ?? null;
+              type = searchParams.get('type') || 'signup';
+            } else {
+              throw new Error('Auth client lacks code-exchange helpers');
+            }
+          } catch (err: any) {
+            console.error('Code exchange failed:', err);
+            setStatus('error');
+            setMessage('Invalid confirmation link (code exchange failed)');
+            return;
+          }
+        } else {
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          accessToken = hashParams.get('access_token');
+          type = hashParams.get('type');
+        }
 
         if (type === 'signup' && accessToken) {
           // Email confirmed successfully
-          const { data, error } = await supabase.auth.getUser(accessToken);
+          const { data, error } = await supabase.auth.getUser(accessToken as string);
 
           if (error) {
             setStatus('error');

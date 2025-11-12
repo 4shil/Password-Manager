@@ -53,13 +53,48 @@ export default function ResetPasswordClient() {
   useEffect(() => {
     const validateRecoveryToken = async () => {
       try {
-        // Check if we have the recovery token in the URL hash
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const accessToken = hashParams.get('access_token');
-        const refreshToken = hashParams.get('refresh_token');
-        const type = hashParams.get('type');
+        // Support both hash params (access_token) and query params (OAuth code)
+        const searchParams = new URLSearchParams(window.location.search);
+        const queryCode = searchParams.get('code');
+        let accessToken: string | null = null;
+        let refreshToken: string | null = null;
+        let type: string | null = null;
 
-        console.log('Reset password - URL hash params:', { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
+        if (queryCode) {
+          try {
+            if (typeof (supabase.auth as any).exchangeCodeForSession === 'function') {
+              const resp = await (supabase.auth as any).exchangeCodeForSession({ code: queryCode });
+              if (resp?.error) throw resp.error;
+              accessToken = resp?.data?.session?.access_token ?? null;
+              refreshToken = resp?.data?.session?.refresh_token ?? null;
+              type = 'recovery';
+            } else if (typeof (supabase.auth as any).getSessionFromUrl === 'function') {
+              const resp = await (supabase.auth as any).getSessionFromUrl();
+              accessToken = resp?.data?.session?.access_token ?? null;
+              refreshToken = resp?.data?.session?.refresh_token ?? null;
+              type = searchParams.get('type') || 'recovery';
+            } else {
+              throw new Error('Auth client lacks code-exchange helpers');
+            }
+          } catch (err: any) {
+            console.error('Code exchange failed:', err);
+            toast({
+              title: 'Invalid Link',
+              description: 'This password reset link is invalid or expired',
+              variant: 'destructive',
+            });
+            setTimeout(() => router.push('/login'), 2000);
+            setIsValidating(false);
+            return;
+          }
+        } else {
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          accessToken = hashParams.get('access_token');
+          refreshToken = hashParams.get('refresh_token');
+          type = hashParams.get('type');
+        }
+
+        console.log('Reset password - token check:', { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
 
         if (type !== 'recovery' || !accessToken) {
           console.error('Invalid recovery link - missing token or wrong type');
