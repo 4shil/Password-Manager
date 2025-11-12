@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -31,6 +32,7 @@ interface UnlockPromptProps {
 }
 
 export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
+  const router = useRouter();
   const [unlocking, setUnlocking] = useState(false);
 
   const {
@@ -51,7 +53,13 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
       // Get current user
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError || !userData.user) {
-        throw new Error('Not authenticated');
+        toast({
+          title: 'Not authenticated',
+          description: 'Please log in before unlocking your vault',
+          variant: 'destructive',
+        });
+        router.push('/login');
+        return;
       }
 
       // Fetch user_keys row
@@ -62,7 +70,14 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
         .single();
 
       if (keyError || !keyData) {
-        throw new Error('Vault not initialized');
+        // If the user doesn't have a wrapped vault key yet, send them to the setup flow.
+        toast({
+          title: 'Vault not initialized',
+          description: 'Please set up your vault before unlocking',
+          variant: 'destructive',
+        });
+        router.push('/setup-vault');
+        return;
       }
 
       // Ensure DB fields exist and support legacy names
