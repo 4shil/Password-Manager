@@ -43,6 +43,8 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
   });
 
   const onSubmit = async (data: { masterPassword: string }) => {
+    // Prevent double submissions
+    if (unlocking) return;
     setUnlocking(true);
 
     try {
@@ -63,6 +65,14 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
         throw new Error('Vault not initialized');
       }
 
+      // Ensure DB fields exist and support legacy names
+      const wrappedB64 = keyData.vault_key_wrapped ?? keyData.vaultKeyWrapped ?? keyData.wrapped;
+      const ivB64 = keyData.vk_iv ?? keyData.iv ?? keyData.vkIv;
+
+      if (!wrappedB64 || !ivB64) {
+        throw new Error('Vault not initialized correctly (missing wrapped key or IV)');
+      }
+
       // Derive KEK from master password
       const kek = await deriveKEK(
         data.masterPassword,
@@ -70,12 +80,14 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
         keyData.kdf_iterations
       );
 
-      // Unwrap vault key (DB stores the IV as `vk_iv` and wrapped key as `vault_key_wrapped`)
-      const vaultKey = await unwrapVaultKey(
-        keyData.vault_key_wrapped,
-        keyData.vk_iv,
-        kek
-      );
+      // Unwrap vault key
+      let vaultKey: CryptoKey;
+      try {
+        vaultKey = await unwrapVaultKey(wrappedB64, ivB64, kek);
+      } catch (e) {
+        // Rethrow with a clear message for the outer catch
+        throw new Error('Incorrect master password or corrupted vault data');
+      }
 
       // Store in memory
       setVaultKey(vaultKey);
@@ -87,10 +99,11 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
 
       reset();
       onUnlock();
-    } catch (err) {
+    } catch (err: any) {
+      const msg = err?.message ?? 'Invalid master password';
       toast({
         title: 'Error',
-        description: 'Invalid master password',
+        description: msg,
         variant: 'destructive',
       });
     } finally {
