@@ -44,8 +44,9 @@ export function ForgotPasswordDialog({ open, onClose }: ForgotPasswordDialogProp
     setSending(true);
 
     try {
+      const base = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
       const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${base}/reset-password`,
       });
 
       if (error) {

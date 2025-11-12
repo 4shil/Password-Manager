@@ -74,7 +74,14 @@ export default function SignupPage() {
         });
 
         // Redirect to the confirmation helper page which will handle the Supabase redirect/hash
-        router.push('/confirm-email');
+        // If running in production, prefer the configured public base URL
+        const base = process.env.NEXT_PUBLIC_BASE_URL || undefined;
+        if (base) {
+          // If a base is configured, navigate the browser to that domain's confirm route
+          window.location.href = `${base}/confirm-email`;
+        } else {
+          router.push('/confirm-email');
+        }
         return;
       }
 
