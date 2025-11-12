@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Shield, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { Shield, CheckCircle, XCircle, Loader2, Info } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ConfirmEmailClient() {
   const router = useRouter();
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'info'>('loading');
   const [message, setMessage] = useState('Confirming your email...');
 
   useEffect(() => {
@@ -52,6 +52,15 @@ export default function ConfirmEmailClient() {
           type = hashParams.get('type');
         }
 
+        // If there is no code and no access token present, the user likely landed here
+        // immediately after signup and a confirmation email was sent. Show a friendly
+        // informational message rather than an error page.
+        if (!queryCode && !accessToken) {
+          setStatus('info');
+          setMessage('A confirmation email was sent — check your inbox (and spam).');
+          return;
+        }
+
         if (type === 'signup' && accessToken) {
           // Email confirmed successfully
           const { data, error } = await supabase.auth.getUser(accessToken as string);
@@ -89,6 +98,7 @@ export default function ConfirmEmailClient() {
           {status === 'loading' && <Loader2 className="h-12 w-12 mb-2 animate-spin text-primary" />}
           {status === 'success' && <CheckCircle className="h-12 w-12 mb-2 text-green-500" />}
           {status === 'error' && <XCircle className="h-12 w-12 mb-2 text-red-500" />}
+          {status === 'info' && <Info className="h-12 w-12 mb-2 text-primary" />}
           <CardTitle className="text-2xl">Email Confirmation</CardTitle>
           <CardDescription className="text-center">{message}</CardDescription>
         </CardHeader>
@@ -102,6 +112,14 @@ export default function ConfirmEmailClient() {
             <Link href="/login">
               <Button>Go to Login</Button>
             </Link>
+          )}
+          {status === 'info' && (
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-sm text-muted-foreground text-center">If you didn't receive the email, check spam or request a new confirmation from the login page.</p>
+              <Link href="/login">
+                <Button>Go to Login</Button>
+              </Link>
+            </div>
           )}
         </CardContent>
       </Card>
