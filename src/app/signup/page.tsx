@@ -63,7 +63,22 @@ export default function SignupPage() {
         return;
       }
 
-      // 2. Generate crypto materials
+      // If the signUp flow didn't create an active session (email confirmation required),
+      // we cannot create the user's wrapped vault key yet because RLS will block unauthenticated inserts.
+      // In that case, ask the user to confirm their email and complete vault setup after confirming.
+      if (!authData.session) {
+        toast({
+          title: 'Confirm your email',
+          description:
+            'Check your inbox for a confirmation email. After confirming, complete vault setup.',
+        });
+
+        // Redirect to the confirmation helper page which will handle the Supabase redirect/hash
+        router.push('/confirm-email');
+        return;
+      }
+
+      // 2. Generate crypto materials and store wrapped vault key (only when session is active)
       const salt = generateSalt();
       const kek = await deriveKEK(data.masterPassword, salt);
       const vaultKey = await generateVaultKey();
@@ -82,11 +97,20 @@ export default function SignupPage() {
       if (dbError) {
         toast({
           title: 'Setup failed',
-          description: 'Failed to initialize vault',
+          description: dbError.message || 'Failed to initialize vault',
           variant: 'destructive',
         });
-        // Clean up: delete auth user
-        await supabase.auth.admin.deleteUser(authData.user.id);
+        // Clean up: delete auth user if we created it but couldn't initialize vault
+        try {
+          // Only attempt admin delete if we have a user id
+          if (authData.user?.id) {
+            // The client-side anon key cannot delete users; skip if not permitted.
+            await supabase.auth.admin.deleteUser(authData.user.id);
+          }
+        } catch (e) {
+          // ignore cleanup errors
+          console.error('Cleanup failed:', e);
+        }
         return;
       }
 
