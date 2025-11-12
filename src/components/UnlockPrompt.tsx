@@ -70,10 +70,10 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
         keyData.kdf_iterations
       );
 
-      // Unwrap vault key
+      // Unwrap vault key (DB stores the IV as `vk_iv` and wrapped key as `vault_key_wrapped`)
       const vaultKey = await unwrapVaultKey(
         keyData.vault_key_wrapped,
-        keyData.iv,
+        keyData.vk_iv,
         kek
       );
 
