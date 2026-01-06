@@ -27,7 +27,7 @@ import {
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Button } from './ui/button';
-import { Lock, Loader2, Shield, KeyRound, AlertTriangle } from 'lucide-react';
+import { Lock, Loader2, Shield, Key, AlertTriangle, Fingerprint } from 'lucide-react';
 
 const unlockSchema = z.object({
   masterPassword: z.string().min(1, 'Master password is required'),
@@ -42,6 +42,8 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
   const router = useRouter();
   const [unlocking, setUnlocking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [glitch, setGlitch] = useState(false);
+  const [decryptingAnimation, setDecryptingAnimation] = useState('');
   const [lockoutStatus, setLockoutStatus] = useState<{
     locked: boolean;
     remainingMs: number;
@@ -57,28 +59,35 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
     resolver: zodResolver(unlockSchema),
   });
 
-  // Check lockout status on mount and periodically
+  // Check lockout status
   useEffect(() => {
     const checkLockout = () => {
       const status = isLockedOut();
       setLockoutStatus(status);
     };
-
     checkLockout();
-
-    // Update every second if locked out
-    const interval = setInterval(() => {
-      const status = isLockedOut();
-      setLockoutStatus(status);
-    }, 1000);
-
+    const interval = setInterval(checkLockout, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Animate decryption glyphs
+  useEffect(() => {
+    if (unlocking) {
+      const chars = '0123456789ABCDEF▓░▒█';
+      const interval = setInterval(() => {
+        let result = '';
+        for (let i = 0; i < 24; i++) {
+          result += chars[Math.floor(Math.random() * chars.length)];
+        }
+        setDecryptingAnimation(result);
+      }, 50);
+      return () => clearInterval(interval);
+    }
+  }, [unlocking]);
 
   const onSubmit = async (data: { masterPassword: string }) => {
     if (unlocking) return;
 
-    // Check if locked out
     const currentStatus = isLockedOut();
     if (currentStatus.locked) {
       setLockoutStatus(currentStatus);
@@ -90,19 +99,17 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
     setError(null);
 
     try {
-      // Get current user
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError || !userData.user) {
         toast({
-          title: 'Not authenticated',
-          description: 'Please log in before unlocking your vault',
+          title: 'NOT AUTHENTICATED',
+          description: 'Session expired. Re-authenticate.',
           variant: 'destructive',
         });
         router.push('/login');
         return;
       }
 
-      // Fetch user_keys row
       const { data: keyData, error: keyError } = await supabase
         .from('user_keys')
         .select('*')
@@ -111,70 +118,62 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
 
       if (keyError || !keyData) {
         toast({
-          title: 'Vault not initialized',
-          description: 'Please set up your vault before unlocking',
+          title: 'VAULT NOT FOUND',
+          description: 'Initialize vault first.',
           variant: 'destructive',
         });
         router.push('/setup-vault');
         return;
       }
 
-      // Ensure DB fields exist and support legacy names
       const wrappedB64 = keyData.vault_key_wrapped ?? keyData.vaultKeyWrapped ?? keyData.wrapped;
       const ivB64 = keyData.vk_iv ?? keyData.iv ?? keyData.vkIv;
 
       if (!wrappedB64 || !ivB64) {
-        throw new Error('Vault not initialized correctly (missing wrapped key or IV)');
+        throw new Error('Vault corrupted (missing wrapped key)');
       }
 
-      // Derive KEK from master password
       const kek = await deriveKEK(
         data.masterPassword,
         keyData.salt,
         keyData.kdf_iterations
       );
 
-      // Unwrap vault key
       let vaultKey: CryptoKey;
       try {
         vaultKey = await unwrapVaultKey(wrappedB64, ivB64, kek);
       } catch (e) {
-        // Record failed attempt
+        // Glitch effect on failed attempt
+        setGlitch(true);
+        setTimeout(() => setGlitch(false), 500);
+
         const attemptResult = recordFailedAttempt();
         setLockoutStatus(attemptResult);
 
         if (attemptResult.justLocked) {
-          setError(getLockoutMessage(attemptResult.remainingMs));
-          toast({
-            title: 'Too many failed attempts',
-            description: getLockoutMessage(attemptResult.remainingMs),
-            variant: 'destructive',
-          });
+          setError(`LOCKOUT ENGAGED: ${formatRemainingTime(attemptResult.remainingMs)}`);
         } else {
-          setError(`Incorrect master password. ${attemptResult.remainingAttempts} attempts remaining.`);
+          setError(`INVALID KEY // ${attemptResult.remainingAttempts} attempts remaining`);
         }
 
         throw new Error('Incorrect master password');
       }
 
-      // Success! Clear attempts and store key
       clearAttempts();
       setVaultKey(vaultKey);
 
       toast({
-        title: 'Vault Unlocked',
-        description: 'Welcome back! Your vault is now accessible.',
+        title: 'VAULT UNLOCKED',
+        description: 'Decryption successful.',
       });
 
       reset();
       onUnlock();
     } catch (err: any) {
-      // Only show generic toast if we haven't already shown a specific error
       if (!error && err?.message !== 'Incorrect master password') {
-        const msg = err?.message ?? 'Invalid master password';
         toast({
-          title: 'Unlock Failed',
-          description: msg,
+          title: 'DECRYPTION FAILED',
+          description: err?.message ?? 'Invalid master key',
           variant: 'destructive',
         });
       }
@@ -185,100 +184,122 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
 
   return (
     <Dialog open={open} onOpenChange={() => { }}>
-      <DialogContent className="sm:max-w-md border-border/50" hideClose>
-        <DialogHeader className="text-center pb-2">
-          <div className="mx-auto mb-6 relative">
-            {/* Animated Background */}
-            <div className="absolute inset-0 rounded-full gradient-primary opacity-20 blur-xl scale-150 pulse-glow" />
+      <DialogContent className="sm:max-w-md bg-[oklch(0.08_0.01_270)/0.95] backdrop-blur-xl border-2 border-[oklch(0.25_0.02_270)] p-0" hideClose>
+        {/* Terminal header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[oklch(0.25_0.02_270)]">
+          <div className="flex items-center gap-3">
+            <div className="w-3 h-3 rounded-full bg-[oklch(0.60_0.25_25)]" />
+            <div className="w-3 h-3 rounded-full bg-[oklch(0.75_0.18_85)]" />
+            <div className="w-3 h-3 rounded-full bg-[oklch(0.72_0.19_155)]" />
+          </div>
+          <span className="text-xs font-mono text-[oklch(0.45_0.02_270)]">
+            VAULT_X://DECRYPT
+          </span>
+        </div>
 
-            {/* Icon Container */}
-            <div className={`relative w-20 h-20 rounded-2xl flex items-center justify-center shadow-xl ${lockoutStatus.locked ? 'bg-destructive' : 'gradient-primary'
-              }`}>
-              {lockoutStatus.locked ? (
-                <AlertTriangle className="h-10 w-10 text-white" />
-              ) : (
-                <Lock className="h-10 w-10 text-white" />
+        <div className={`p-8 ${glitch ? 'animate-glitch' : ''}`}>
+          <DialogHeader className="text-center space-y-4 mb-8">
+            {/* Lock icon with glow */}
+            <div className="mx-auto relative">
+              <div
+                className={`w-20 h-20 flex items-center justify-center border-2 ${lockoutStatus.locked
+                    ? 'border-[oklch(0.60_0.25_25)] bg-[oklch(0.60_0.25_25)/0.1]'
+                    : 'border-[oklch(0.55_0.28_280)]'
+                  }`}
+              >
+                {lockoutStatus.locked ? (
+                  <AlertTriangle className="h-10 w-10 text-[oklch(0.60_0.25_25)]" />
+                ) : unlocking ? (
+                  <Fingerprint className="h-10 w-10 text-[oklch(0.75_0.18_195)] animate-pulse" />
+                ) : (
+                  <Lock className="h-10 w-10 text-[oklch(0.75_0.18_195)]" />
+                )}
+              </div>
+              {!lockoutStatus.locked && (
+                <div className="absolute inset-0 animate-pulse-glow pointer-events-none"
+                  style={{ boxShadow: '0 0 40px oklch(0.55 0.28 280 / 0.3)' }}
+                />
               )}
             </div>
-          </div>
 
-          <DialogTitle className="text-2xl font-bold">
-            {lockoutStatus.locked ? 'Account Locked' : 'Unlock Your Vault'}
-          </DialogTitle>
-          <DialogDescription className="text-base">
-            {lockoutStatus.locked
-              ? `Too many failed attempts. Please wait ${formatRemainingTime(lockoutStatus.remainingMs)}.`
-              : 'Enter your master password to decrypt your passwords'
-            }
-          </DialogDescription>
-        </DialogHeader>
+            <DialogTitle className="text-2xl font-bold uppercase tracking-widest text-white">
+              {lockoutStatus.locked ? 'LOCKED OUT' : unlocking ? 'DECRYPTING' : 'VAULT LOCKED'}
+            </DialogTitle>
+            <DialogDescription className="text-sm font-mono text-[oklch(0.45_0.02_270)]">
+              {lockoutStatus.locked
+                ? `Wait ${formatRemainingTime(lockoutStatus.remainingMs)} to retry`
+                : unlocking
+                  ? decryptingAnimation
+                  : 'Enter master key to decrypt vault'
+              }
+            </DialogDescription>
+          </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 pt-4">
-          <div className="space-y-2">
-            <Label htmlFor="masterPassword" className="text-sm font-medium">
-              Master Password
-            </Label>
-            <div className="relative group">
-              <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="masterPassword" className="text-xs uppercase tracking-widest text-[oklch(0.55_0.28_280)]">
+                MASTER KEY
+              </Label>
               <Input
                 id="masterPassword"
                 type="password"
-                placeholder="Enter your master password"
+                placeholder="••••••••••••••••"
                 autoFocus
                 {...register('masterPassword')}
                 disabled={unlocking || lockoutStatus.locked}
-                className="pl-11 h-12 rounded-xl border-border/50 bg-muted/30 focus:bg-background transition-all"
+                className="border-[oklch(0.55_0.28_280)]"
               />
+
+              {/* Error */}
+              {(errors.masterPassword || error) && (
+                <p className="text-xs text-[oklch(0.60_0.25_25)] font-mono flex items-center gap-2">
+                  <AlertTriangle className="h-3 w-3" />
+                  {errors.masterPassword?.message || error}
+                </p>
+              )}
+
+              {/* Attempts warning */}
+              {!lockoutStatus.locked && lockoutStatus.remainingAttempts < 5 && lockoutStatus.remainingAttempts > 0 && (
+                <p className="text-xs text-[oklch(0.75_0.18_85)] font-mono flex items-center gap-2">
+                  <AlertTriangle className="h-3 w-3" />
+                  {lockoutStatus.remainingAttempts} ATTEMPTS REMAINING
+                </p>
+              )}
             </div>
 
-            {/* Error Message */}
-            {(errors.masterPassword || error) && (
-              <p className="text-sm text-destructive flex items-center gap-2">
-                <span className="w-1 h-1 rounded-full bg-destructive" />
-                {errors.masterPassword?.message || error}
-              </p>
-            )}
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={unlocking || lockoutStatus.locked}
+              variant={lockoutStatus.locked ? 'secondary' : 'default'}
+            >
+              {unlocking ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  DECRYPTING...
+                </>
+              ) : lockoutStatus.locked ? (
+                <>
+                  <Lock className="h-4 w-4 mr-2" />
+                  LOCKED ({formatRemainingTime(lockoutStatus.remainingMs)})
+                </>
+              ) : (
+                <>
+                  <Key className="h-4 w-4 mr-2" />
+                  UNLOCK VAULT
+                </>
+              )}
+            </Button>
 
-            {/* Attempts Warning */}
-            {!lockoutStatus.locked && lockoutStatus.remainingAttempts < 5 && lockoutStatus.remainingAttempts > 0 && (
-              <p className="text-xs text-warning flex items-center gap-2">
-                <AlertTriangle className="h-3 w-3" />
-                {lockoutStatus.remainingAttempts} attempt{lockoutStatus.remainingAttempts !== 1 ? 's' : ''} remaining before lockout
-              </p>
-            )}
-          </div>
-
-          <Button
-            type="submit"
-            className={`w-full h-12 text-base ${lockoutStatus.locked ? '' : 'gradient-primary'} hover-scale press shadow-lg`}
-            disabled={unlocking || lockoutStatus.locked}
-            variant={lockoutStatus.locked ? 'secondary' : 'default'}
-          >
-            {unlocking ? (
-              <>
-                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                Unlocking...
-              </>
-            ) : lockoutStatus.locked ? (
-              <>
-                <Lock className="h-5 w-5 mr-2" />
-                Locked ({formatRemainingTime(lockoutStatus.remainingMs)})
-              </>
-            ) : (
-              <>
-                <Shield className="h-5 w-5 mr-2" />
-                Unlock Vault
-              </>
-            )}
-          </Button>
-
-          {/* Security Note */}
-          <p className="text-xs text-center text-muted-foreground">
-            Your master password never leaves your device.
-            <br />
-            All decryption happens locally in your browser.
-          </p>
-        </form>
+            {/* Security note */}
+            <div className="flex items-center justify-center gap-2 pt-4 border-t border-[oklch(0.20_0.02_270)]">
+              <Shield className="h-3 w-3 text-[oklch(0.35_0.02_270)]" />
+              <span className="text-xs font-mono text-[oklch(0.35_0.02_270)]">
+                ZERO-KNOWLEDGE • CLIENT-SIDE ONLY
+              </span>
+            </div>
+          </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

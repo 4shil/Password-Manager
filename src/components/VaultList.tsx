@@ -2,95 +2,67 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import { getVaultKey } from '@/lib/crypto/memory';
 import { decryptPayload } from '@/lib/crypto/aes';
+import { getVaultKey } from '@/lib/crypto/memory';
 import { VaultItemCard } from './VaultItemCard';
 import { VaultEditorDialog } from './VaultEditorDialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { toast } from './ui/use-toast';
-import { Search, Plus, Loader2, KeyRound, Sparkles, Filter, LayoutGrid, List } from 'lucide-react';
-import type { VaultItem, DecryptedVaultItem, VaultItemPayload } from '@/lib/validators';
-
-// Skeleton component for loading state
-function VaultItemSkeleton() {
-  return (
-    <div className="rounded-2xl border border-border/50 bg-card p-6 space-y-4">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl skeleton" />
-        <div className="space-y-2 flex-1">
-          <div className="h-5 w-32 rounded skeleton" />
-          <div className="h-3 w-24 rounded skeleton" />
-        </div>
-      </div>
-      <div className="space-y-3">
-        <div className="h-12 rounded-lg skeleton" />
-        <div className="h-10 rounded-lg skeleton" />
-      </div>
-    </div>
-  );
-}
+import { Plus, Search, Grid3X3, List, Shield, Loader2, X, Archive } from 'lucide-react';
+import type { VaultItem, DecryptedVaultItem } from '@/lib/validators';
 
 export function VaultList() {
   const [items, setItems] = useState<DecryptedVaultItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [editingItem, setEditingItem] = useState<DecryptedVaultItem | null>(null);
-  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<DecryptedVaultItem | null>(null);
 
-  useEffect(() => {
-    loadVaultItems();
-  }, []);
-
-  const loadVaultItems = async () => {
+  const fetchAndDecrypt = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const vaultKey = getVaultKey();
-
       if (!vaultKey) {
         toast({
-          title: 'Error',
-          description: 'Vault is locked',
+          title: 'VAULT LOCKED',
+          description: 'Unlock vault to access credentials.',
           variant: 'destructive',
         });
         return;
       }
 
-      const { data, error } = await supabase
+      const { data: rawItems, error } = await supabase
         .from('vault_items')
         .select('*')
         .is('deleted_at', null)
-        .order('created_at', { ascending: false });
+        .order('updated_at', { ascending: false });
 
       if (error) throw error;
 
-      // Decrypt all items
-      const decrypted = await Promise.all(
-        (data as VaultItem[]).map(async (item) => {
-          const payload = await decryptPayload<VaultItemPayload>(
-            vaultKey,
-            item.enc_payload,
-            item.iv
-          );
-
-          const payloadObj = (payload ?? {}) as VaultItemPayload;
-
-          return {
+      const decrypted: DecryptedVaultItem[] = [];
+      for (const item of rawItems ?? []) {
+        try {
+          const payload = await decryptPayload(item.encrypted_data, vaultKey);
+          decrypted.push({
             id: item.id,
+            user_id: item.user_id,
             title: item.title,
+            ...payload,
             created_at: item.created_at,
             updated_at: item.updated_at,
-            ...payloadObj,
-          } as DecryptedVaultItem;
-        })
-      );
+          });
+        } catch (e) {
+          console.error('Decryption failed for item:', item.id);
+        }
+      }
 
       setItems(decrypted);
     } catch (err) {
       toast({
-        title: 'Error',
-        description: 'Failed to load vault items',
+        title: 'LOAD FAILED',
+        description: 'Unable to fetch vault data.',
         variant: 'destructive',
       });
     } finally {
@@ -98,175 +70,183 @@ export function VaultList() {
     }
   };
 
+  useEffect(() => {
+    fetchAndDecrypt();
+  }, []);
+
   const filteredItems = items.filter((item) =>
-    item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.url?.toLowerCase().includes(searchQuery.toLowerCase())
+    item.title.toLowerCase().includes(search.toLowerCase()) ||
+    item.username?.toLowerCase().includes(search.toLowerCase()) ||
+    item.url?.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Highlight matching text
-  const highlightMatch = (text: string, query: string) => {
-    if (!query) return text;
-    const parts = text.split(new RegExp(`(${query})`, 'gi'));
-    return parts.map((part, i) =>
-      part.toLowerCase() === query.toLowerCase()
-        ? <mark key={i} className="bg-primary/20 text-primary rounded px-0.5">{part}</mark>
-        : part
-    );
+  const handleEdit = (item: DecryptedVaultItem) => {
+    setEditingItem(item);
+    setEditorOpen(true);
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-6 page-enter">
-        {/* Header Skeleton */}
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          <div className="h-10 w-full max-w-md rounded-xl skeleton" />
-          <div className="h-10 w-32 rounded-xl skeleton" />
-        </div>
+  const handleAdd = () => {
+    setEditingItem(null);
+    setEditorOpen(true);
+  };
 
-        {/* Grid Skeleton */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <VaultItemSkeleton key={i} />
-          ))}
+  const handleClose = () => {
+    setEditorOpen(false);
+    setEditingItem(null);
+    fetchAndDecrypt();
+  };
+
+  // Skeleton loader
+  const Skeleton = () => (
+    <div className="skeleton-cyber h-64" />
+  );
+
+  // Empty state
+  if (!loading && items.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 px-6">
+        <div className="relative mb-8">
+          <div className="w-24 h-24 flex items-center justify-center border-2 border-[oklch(0.25_0.02_270)]">
+            <Archive className="h-12 w-12 text-[oklch(0.35_0.02_270)]" />
+          </div>
+          <div className="absolute inset-0 animate-pulse-glow" style={{ boxShadow: '0 0 40px oklch(0.55 0.28 280 / 0.2)' }} />
         </div>
+        <h2 className="text-2xl font-bold uppercase tracking-widest text-white mb-3">
+          VAULT EMPTY
+        </h2>
+        <p className="text-sm font-mono text-[oklch(0.45_0.02_270)] mb-8 text-center max-w-md">
+          No credentials stored. Initialize your first secure entry.
+        </p>
+        <Button onClick={handleAdd} size="lg">
+          <Plus className="h-5 w-5 mr-2" />
+          ADD CREDENTIAL
+        </Button>
+
+        <VaultEditorDialog
+          open={editorOpen}
+          onClose={handleClose}
+          item={editingItem}
+        />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 page-enter">
-      {/* Header */}
+    <div className="space-y-8">
+      {/* Toolbar */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         {/* Search */}
-        <div className="relative flex-1 max-w-md w-full group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+        <div className="relative flex-1 max-w-md w-full">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[oklch(0.45_0.02_270)]" />
           <Input
-            placeholder="Search passwords..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-11 h-11 rounded-xl border-border/50 bg-background/50 focus:bg-background transition-colors"
+            type="text"
+            placeholder="SEARCH VAULT..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-12 pr-10"
           />
-          {searchQuery && (
-            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-              {filteredItems.length} found
-            </span>
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[oklch(0.45_0.02_270)] hover:text-white transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
           )}
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2">
-          {/* View Toggle */}
-          <div className="hidden sm:flex items-center gap-1 p-1 rounded-lg bg-muted/50">
-            <Button
-              variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-              size="icon"
-              className="h-8 w-8"
+        <div className="flex items-center gap-3">
+          {/* View toggle */}
+          <div className="flex border-2 border-[oklch(0.25_0.02_270)]">
+            <button
               onClick={() => setViewMode('grid')}
+              className={`p-2 transition-colors ${viewMode === 'grid'
+                  ? 'bg-[oklch(0.55_0.28_280)] text-white'
+                  : 'text-[oklch(0.45_0.02_270)] hover:text-white'
+                }`}
             >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-              size="icon"
-              className="h-8 w-8"
+              <Grid3X3 className="h-4 w-4" />
+            </button>
+            <button
               onClick={() => setViewMode('list')}
+              className={`p-2 transition-colors ${viewMode === 'list'
+                  ? 'bg-[oklch(0.55_0.28_280)] text-white'
+                  : 'text-[oklch(0.45_0.02_270)] hover:text-white'
+                }`}
             >
               <List className="h-4 w-4" />
-            </Button>
+            </button>
           </div>
 
-          {/* Add Button */}
-          <Button
-            onClick={() => setShowAddDialog(true)}
-            className="gradient-primary hover-scale press shadow-lg gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Add Password</span>
-            <span className="sm:hidden">Add</span>
+          {/* Add button */}
+          <Button onClick={handleAdd}>
+            <Plus className="h-4 w-4 mr-2" />
+            ADD
           </Button>
         </div>
       </div>
 
-      {/* Empty State */}
-      {filteredItems.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-20 h-20 rounded-3xl gradient-primary flex items-center justify-center mb-6 float">
-            <KeyRound className="h-10 w-10 text-white" />
-          </div>
-          <h3 className="text-xl font-semibold mb-2">
-            {searchQuery ? 'No matches found' : 'Your vault is empty'}
-          </h3>
-          <p className="text-muted-foreground mb-6 max-w-sm">
-            {searchQuery
-              ? `No passwords match "${searchQuery}". Try a different search term.`
-              : 'Start by adding your first password. All data is encrypted client-side.'}
-          </p>
-          {!searchQuery && (
-            <Button
-              onClick={() => setShowAddDialog(true)}
-              className="gradient-primary hover-scale press shadow-lg gap-2"
-            >
-              <Sparkles className="h-4 w-4" />
-              Add Your First Password
-            </Button>
-          )}
+      {/* Stats bar */}
+      <div className="flex items-center gap-6 px-4 py-3 bg-[oklch(0.08_0.01_270)] border border-[oklch(0.20_0.02_270)]">
+        <div className="flex items-center gap-2">
+          <Shield className="h-4 w-4 text-[oklch(0.55_0.28_280)]" />
+          <span className="text-xs font-mono text-[oklch(0.45_0.02_270)]">
+            TOTAL: <span className="text-white">{items.length}</span>
+          </span>
         </div>
-      ) : (
-        /* Items Grid/List */
-        <div className={
-          viewMode === 'grid'
-            ? "grid gap-6 md:grid-cols-2 lg:grid-cols-3 stagger-children"
-            : "flex flex-col gap-4 stagger-children"
-        }>
-          {filteredItems.map((item) => (
-            <VaultItemCard
-              key={item.id}
-              item={item}
-              onEdit={(item) => setEditingItem(item)}
-              onDelete={() => loadVaultItems()}
-            />
+        {search && (
+          <span className="text-xs font-mono text-[oklch(0.45_0.02_270)]">
+            FILTERED: <span className="text-[oklch(0.75_0.18_195)]">{filteredItems.length}</span>
+          </span>
+        )}
+      </div>
+
+      {/* Loading */}
+      {loading ? (
+        <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
+          {[...Array(6)].map((_, i) => (
+            <Skeleton key={i} />
           ))}
         </div>
-      )}
+      ) : (
+        <>
+          {/* No results */}
+          {filteredItems.length === 0 && search && (
+            <div className="text-center py-16">
+              <p className="text-sm font-mono text-[oklch(0.45_0.02_270)]">
+                NO MATCHES FOR "<span className="text-white">{search}</span>"
+              </p>
+            </div>
+          )}
 
-      {/* Stats Bar */}
-      {items.length > 0 && (
-        <div className="flex items-center justify-center gap-6 py-4 text-sm text-muted-foreground border-t border-border/50">
-          <div className="flex items-center gap-2">
-            <KeyRound className="h-4 w-4" />
-            <span>{items.length} {items.length === 1 ? 'password' : 'passwords'}</span>
+          {/* Items grid/list */}
+          <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
+            {filteredItems.map((item, index) => (
+              <div
+                key={item.id}
+                style={{
+                  animationDelay: `${index * 50}ms`,
+                }}
+                className="animate-decrypt"
+              >
+                <VaultItemCard
+                  item={item}
+                  onEdit={handleEdit}
+                  onDelete={fetchAndDecrypt}
+                />
+              </div>
+            ))}
           </div>
-          <div className="w-px h-4 bg-border" />
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4" />
-            <span>All encrypted</span>
-          </div>
-        </div>
+        </>
       )}
 
-      {/* Add Dialog */}
-      {showAddDialog && (
-        <VaultEditorDialog
-          open={showAddDialog}
-          onClose={() => {
-            setShowAddDialog(false);
-            loadVaultItems();
-          }}
-        />
-      )}
-
-      {/* Edit Dialog */}
-      {editingItem && (
-        <VaultEditorDialog
-          open={!!editingItem}
-          item={editingItem}
-          onClose={() => {
-            setEditingItem(null);
-            loadVaultItems();
-          }}
-        />
-      )}
+      {/* Editor dialog */}
+      <VaultEditorDialog
+        open={editorOpen}
+        onClose={handleClose}
+        item={editingItem}
+      />
     </div>
   );
 }
