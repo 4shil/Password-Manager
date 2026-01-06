@@ -6,7 +6,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Switch } from './ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Copy, RefreshCw } from 'lucide-react';
+import { Copy, RefreshCw, Check, Sparkles, Settings2 } from 'lucide-react';
 import { toast } from './ui/use-toast';
 import { generateRandomBytes } from '@/lib/utils';
 
@@ -23,6 +23,8 @@ export function PasswordGenerator({ onGenerate }: PasswordGeneratorProps) {
     symbols: true,
   });
   const [password, setPassword] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
 
   const generatePassword = () => {
     let charset = '';
@@ -42,7 +44,7 @@ export function PasswordGenerator({ onGenerate }: PasswordGeneratorProps) {
 
     const randomBytes = generateRandomBytes(length);
     let result = '';
-    
+
     for (let i = 0; i < length; i++) {
       result += charset[randomBytes[i] % charset.length];
     }
@@ -55,11 +57,13 @@ export function PasswordGenerator({ onGenerate }: PasswordGeneratorProps) {
 
   const copyPassword = async () => {
     if (!password) return;
-    
+
     try {
       await navigator.clipboard.writeText(password);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
       toast({
-        title: 'Copied',
+        title: 'Copied!',
         description: 'Password copied to clipboard',
       });
     } catch (err) {
@@ -71,88 +75,140 @@ export function PasswordGenerator({ onGenerate }: PasswordGeneratorProps) {
     }
   };
 
+  // Calculate password entropy
+  const getEntropy = () => {
+    let poolSize = 0;
+    if (options.lowercase) poolSize += 26;
+    if (options.uppercase) poolSize += 26;
+    if (options.digits) poolSize += 10;
+    if (options.symbols) poolSize += 28;
+    return Math.round(Math.log2(Math.pow(poolSize, length)));
+  };
+
+  const entropy = getEntropy();
+  const entropyLabel = entropy < 40 ? 'Weak' : entropy < 60 ? 'Fair' : entropy < 80 ? 'Good' : 'Strong';
+  const entropyColor = entropy < 40 ? 'text-destructive' : entropy < 60 ? 'text-warning' : entropy < 80 ? 'text-accent' : 'text-success';
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Password Generator</CardTitle>
+    <Card className="border-primary/20 bg-primary/5">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            Password Generator
+          </CardTitle>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowOptions(!showOptions)}
+            className="h-8 gap-1"
+          >
+            <Settings2 className="h-4 w-4" />
+            {showOptions ? 'Hide' : 'Options'}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="length">Length: {length}</Label>
-          <Input
+        {/* Length Slider */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="length" className="text-sm">Length</Label>
+            <div className="flex items-center gap-2">
+              <span className="text-2xl font-bold text-primary">{length}</span>
+              <span className="text-xs text-muted-foreground">characters</span>
+            </div>
+          </div>
+          <input
             id="length"
             type="range"
             min="8"
             max="64"
             value={length}
             onChange={(e) => setLength(parseInt(e.target.value))}
+            className="w-full h-2 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
           />
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="lowercase">Lowercase (a-z)</Label>
-            <Switch
-              id="lowercase"
-              checked={options.lowercase}
-              onCheckedChange={(checked) =>
-                setOptions({ ...options, lowercase: checked })
-              }
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <Label htmlFor="uppercase">Uppercase (A-Z)</Label>
-            <Switch
-              id="uppercase"
-              checked={options.uppercase}
-              onCheckedChange={(checked) =>
-                setOptions({ ...options, uppercase: checked })
-              }
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <Label htmlFor="digits">Digits (0-9)</Label>
-            <Switch
-              id="digits"
-              checked={options.digits}
-              onCheckedChange={(checked) =>
-                setOptions({ ...options, digits: checked })
-              }
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <Label htmlFor="symbols">Symbols (!@#$...)</Label>
-            <Switch
-              id="symbols"
-              checked={options.symbols}
-              onCheckedChange={(checked) =>
-                setOptions({ ...options, symbols: checked })
-              }
-            />
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>8</span>
+            <span>64</span>
           </div>
         </div>
 
+        {/* Options */}
+        {showOptions && (
+          <div className="grid grid-cols-2 gap-3 p-4 rounded-xl bg-background/50 border border-border/50">
+            {[
+              { key: 'lowercase', label: 'Lowercase (a-z)' },
+              { key: 'uppercase', label: 'Uppercase (A-Z)' },
+              { key: 'digits', label: 'Numbers (0-9)' },
+              { key: 'symbols', label: 'Symbols (!@#$)' },
+            ].map(({ key, label }) => (
+              <div key={key} className="flex items-center justify-between gap-2">
+                <Label htmlFor={key} className="text-xs">{label}</Label>
+                <Switch
+                  id={key}
+                  checked={options[key as keyof typeof options]}
+                  onCheckedChange={(checked) =>
+                    setOptions({ ...options, [key]: checked })
+                  }
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Generated Password Display */}
         {password && (
           <div className="space-y-2">
-            <Label>Generated Password</Label>
-            <div className="flex gap-2">
-              <Input value={password} readOnly className="font-mono" />
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-background border border-border/50">
+              <code className="flex-1 text-sm font-mono break-all">{password}</code>
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 size="icon"
                 onClick={copyPassword}
+                className={`h-8 w-8 shrink-0 ${copied ? 'text-success' : ''}`}
               >
-                <Copy className="h-4 w-4" />
+                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               </Button>
+            </div>
+
+            {/* Entropy Indicator */}
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Entropy: {entropy} bits</span>
+              <span className={`font-medium ${entropyColor}`}>{entropyLabel}</span>
             </div>
           </div>
         )}
 
-        <Button type="button" onClick={generatePassword} className="w-full">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Generate Password
+        {/* Generate Button */}
+        <Button
+          type="button"
+          onClick={generatePassword}
+          className="w-full gradient-primary hover-scale press"
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${password ? '' : ''}`} />
+          {password ? 'Regenerate' : 'Generate Password'}
         </Button>
+
+        {/* Use Button (when onGenerate is provided) */}
+        {password && onGenerate && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              onGenerate(password);
+              toast({
+                title: 'Password applied',
+                description: 'The generated password has been filled in',
+              });
+            }}
+            className="w-full"
+          >
+            <Check className="h-4 w-4 mr-2" />
+            Use This Password
+          </Button>
+        )}
       </CardContent>
     </Card>
   );

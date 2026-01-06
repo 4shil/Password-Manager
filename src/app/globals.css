@@ -417,9 +417,14 @@
 
 /* Enhanced Cards */
 .card-premium {
-  @apply relative overflow-hidden rounded-2xl bg-card border border-border/50;
+  @apply relative overflow-hidden rounded-2xl bg-card;
+  border: 1px solid oklch(0 0 0 / 0.1);
   transition: all var(--transition-normal);
   box-shadow: var(--shadow);
+}
+
+.dark .card-premium {
+  border-color: oklch(1 0 0 / 0.1);
 }
 
 .card-premium::before {

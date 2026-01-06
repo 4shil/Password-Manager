@@ -1,17 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Allow production builds to succeed even if ESLint errors exist.
-  // We still run ESLint locally and in CI, but hosting platforms shouldn't fail the build.
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  // Some type errors can originate from mismatched types in devDependencies
-  // (for example, Vitest/Vite types). In CI/hosting builds we prefer to
-  // proceed with a deploy and surface type errors in PRs or CI jobs.
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   async headers() {
     return [
       {
