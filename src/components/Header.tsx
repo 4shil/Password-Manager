@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase/client';
 import { lockVault, getRemainingTime, formatTime } from '@/lib/crypto/memory';
 import { Button } from './ui/button';
+import { ThemeToggle } from './ThemeToggle';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,16 +67,26 @@ export function Header({ onLock }: HeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b-[3px] border-[#1a1a1a] bg-white">
+    <motion.header
+      initial={{ y: -20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      className="sticky top-0 z-40 w-full border-b-[3px] border-[var(--border)] bg-[var(--surface)]"
+    >
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link href="/app" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 flex items-center justify-center bg-[#FFE156] border-[3px] border-[#1a1a1a] shadow-[2px_2px_0_#1a1a1a] transition-all group-hover:-translate-y-0.5 group-hover:shadow-[3px_3px_0_#1a1a1a]">
+            <motion.div
+              className="w-10 h-10 flex items-center justify-center bg-[var(--yellow)] border-[3px] border-[var(--border)] shadow-[2px_2px_0_var(--shadow-color)]"
+              whileHover={{ x: -2, y: -2, boxShadow: '4px 4px 0 var(--shadow-color)' }}
+              whileTap={{ x: 1, y: 1, boxShadow: '1px 1px 0 var(--shadow-color)' }}
+              transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+            >
               <Shield className="h-5 w-5 text-[#1a1a1a]" />
-            </div>
-            <span className="text-lg font-bold text-[#1a1a1a] hidden sm:block">
-              Password<span className="text-[#FF6B9D]">Vault</span>
+            </motion.div>
+            <span className="text-lg font-bold text-[var(--text)] hidden sm:block">
+              Password<span className="text-[var(--pink)]">Vault</span>
             </span>
           </Link>
 
@@ -82,13 +94,20 @@ export function Header({ onLock }: HeaderProps) {
           <div className="flex items-center gap-3">
             {/* Auto-lock timer */}
             {remainingTime > 0 && (
-              <div className="hidden sm:flex items-center gap-2 px-3 py-2 bg-[#FEF9EF] border-[2px] border-[#1a1a1a]">
-                <Clock className="h-4 w-4 text-[#666666]" />
-                <span className="text-sm text-[#666666]">
-                  Auto-lock: <span className="font-bold text-[#1a1a1a]">{formatTime(remainingTime)}</span>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="hidden sm:flex items-center gap-2 px-3 py-2 bg-[var(--muted)] border-[2px] border-[var(--border)]"
+              >
+                <Clock className="h-4 w-4 text-[var(--text-muted)]" />
+                <span className="text-sm text-[var(--text-muted)]">
+                  Auto-lock: <span className="font-bold text-[var(--text)]">{formatTime(remainingTime)}</span>
                 </span>
-              </div>
+              </motion.div>
             )}
+
+            {/* Theme Toggle */}
+            <ThemeToggle />
 
             {/* Lock button */}
             <Button variant="outline" size="sm" onClick={handleLock}>
@@ -107,21 +126,21 @@ export function Header({ onLock }: HeaderProps) {
                   <ChevronDown className="h-3 w-3 opacity-50" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 bg-white border-[3px] border-[#1a1a1a] shadow-[4px_4px_0_#1a1a1a]">
-                <div className="px-3 py-2 border-b-[2px] border-[#e5e5e5]">
-                  <p className="text-xs text-[#666666]">Signed in as</p>
-                  <p className="text-sm font-bold text-[#1a1a1a] truncate">{email}</p>
+              <DropdownMenuContent align="end" className="w-56 bg-[var(--surface)] border-[3px] border-[var(--border)] shadow-[4px_4px_0_var(--shadow-color)]">
+                <div className="px-3 py-2 border-b-[2px] border-[var(--border-light)]">
+                  <p className="text-xs text-[var(--text-muted)]">Signed in as</p>
+                  <p className="text-sm font-bold text-[var(--text)] truncate">{email}</p>
                 </div>
                 <DropdownMenuItem onClick={() => router.push('/app/settings')} className="gap-2 cursor-pointer font-medium">
                   <Settings className="h-4 w-4" />
                   <span>Settings</span>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-[#e5e5e5]" />
+                <DropdownMenuSeparator className="bg-[var(--border-light)]" />
                 <DropdownMenuItem onClick={handleLock} className="gap-2 cursor-pointer font-medium">
                   <Lock className="h-4 w-4" />
                   <span>Lock Vault</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleLogout} className="gap-2 cursor-pointer font-medium text-[#FF8A80]">
+                <DropdownMenuItem onClick={handleLogout} className="gap-2 cursor-pointer font-medium text-[var(--coral)]">
                   <LogOut className="h-4 w-4" />
                   <span>Sign Out</span>
                 </DropdownMenuItem>
@@ -130,6 +149,6 @@ export function Header({ onLock }: HeaderProps) {
           </div>
         </div>
       </div>
-    </header>
+    </motion.header>
   );
 }

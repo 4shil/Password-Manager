@@ -1,11 +1,11 @@
 /* ========================================
    SMOOTH NEO BRUTALISM DESIGN SYSTEM
-   Password Manager
+   Password Manager - Light & Dark Modes
    "Bold, playful, and interactive"
    ======================================== */
 
 /* ========================================
-   CSS CUSTOM PROPERTIES
+   CSS CUSTOM PROPERTIES - LIGHT MODE
    ======================================== */
 
 :root {
@@ -31,6 +31,7 @@
   --coral-hover: #FF6B5B;
   --lavender: #C4B5FD;
   --lavender-hover: #A78BFA;
+  --orange: #FFB74D;
 
   /* === SEMANTIC TOKENS === */
   --primary: var(--yellow);
@@ -54,10 +55,11 @@
   --border: #1a1a1a;
   --border-light: #e5e5e5;
   --border-width: 3px;
-  --shadow-brutal: 4px 4px 0 #1a1a1a;
-  --shadow-brutal-hover: 6px 6px 0 #1a1a1a;
-  --shadow-brutal-active: 2px 2px 0 #1a1a1a;
-  --shadow-brutal-lg: 8px 8px 0 #1a1a1a;
+  --shadow-color: #1a1a1a;
+  --shadow-brutal: 4px 4px 0 var(--shadow-color);
+  --shadow-brutal-hover: 6px 6px 0 var(--shadow-color);
+  --shadow-brutal-active: 2px 2px 0 var(--shadow-color);
+  --shadow-brutal-lg: 8px 8px 0 var(--shadow-color);
   --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.08);
 
   /* === CARD & INPUT === */
@@ -93,11 +95,53 @@
 }
 
 /* ========================================
+   DARK MODE VARIABLES
+   ======================================== */
+
+[data-theme="dark"] {
+  --background: #0f0f0f;
+  --background-soft: #1a1a1a;
+  --surface: #1f1f1f;
+  --surface-hover: #2a2a2a;
+  --text: #ffffff;
+  --text-muted: #a0a0a0;
+  --text-light: #666666;
+
+  /* Dark mode uses lighter borders and shadows */
+  --border: #ffffff;
+  --border-light: #333333;
+  --shadow-color: rgba(255, 255, 255, 0.2);
+  --shadow-brutal: 4px 4px 0 var(--shadow-color);
+  --shadow-brutal-hover: 6px 6px 0 var(--shadow-color);
+  --shadow-brutal-active: 2px 2px 0 var(--shadow-color);
+  --shadow-brutal-lg: 8px 8px 0 var(--shadow-color);
+
+  --card: var(--surface);
+  --popover: var(--surface);
+  --input: var(--surface);
+  --muted: #2a2a2a;
+  --ring: var(--yellow);
+}
+
+/* ========================================
+   SMOOTH THEME TRANSITIONS
+   ======================================== */
+
+html {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body,
+.transition-colors {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* ========================================
    BASE STYLES
    ======================================== */
 
 html {
-  color-scheme: light;
+  color-scheme: light dark;
   scroll-behavior: smooth;
 }
 
@@ -161,7 +205,7 @@ body {
 }
 
 /* ========================================
-   ANIMATION KEYFRAMES
+   ENHANCED ANIMATION KEYFRAMES
    ======================================== */
 
 @keyframes bounce-in {
@@ -171,7 +215,7 @@ body {
   }
 
   50% {
-    transform: scale(1.02);
+    transform: scale(1.05);
   }
 
   100% {
@@ -202,7 +246,7 @@ body {
   }
 
   50% {
-    transform: scale(1.05);
+    transform: scale(1.1);
   }
 
   100% {
@@ -212,7 +256,7 @@ body {
 
 @keyframes slide-up {
   0% {
-    transform: translateY(10px);
+    transform: translateY(20px);
     opacity: 0;
   }
 
@@ -224,12 +268,36 @@ body {
 
 @keyframes slide-down {
   0% {
-    transform: translateY(-10px);
+    transform: translateY(-20px);
     opacity: 0;
   }
 
   100% {
     transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-left {
+  0% {
+    transform: translateX(-30px);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-right {
+  0% {
+    transform: translateX(30px);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateX(0);
     opacity: 1;
   }
 }
@@ -253,12 +321,14 @@ body {
     transform: translateX(0);
   }
 
-  25% {
-    transform: translateX(-4px);
+  20%,
+  60% {
+    transform: translateX(-6px);
   }
 
-  75% {
-    transform: translateX(4px);
+  40%,
+  80% {
+    transform: translateX(6px);
   }
 }
 
@@ -270,7 +340,7 @@ body {
   }
 
   50% {
-    transform: translateY(-6px);
+    transform: translateY(-10px);
   }
 }
 
@@ -294,12 +364,84 @@ body {
   }
 }
 
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+@keyframes checkmark-draw {
+  0% {
+    stroke-dashoffset: 24;
+  }
+
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes typing {
+
+  0%,
+  50%,
+  100% {
+    opacity: 1;
+  }
+
+  25%,
+  75% {
+    opacity: 0;
+  }
+}
+
+@keyframes scramble {
+  0% {
+    opacity: 0.5;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes glow-pulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px var(--yellow);
+  }
+
+  50% {
+    box-shadow: 0 0 40px var(--yellow), 0 0 60px var(--pink);
+  }
+}
+
 /* ========================================
    ANIMATION UTILITIES
    ======================================== */
 
 .animate-bounce-in {
-  animation: bounce-in 0.4s var(--transition-spring);
+  animation: bounce-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 .animate-wobble {
@@ -311,11 +453,19 @@ body {
 }
 
 .animate-slide-up {
-  animation: slide-up 0.3s ease-out;
+  animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-slide-down {
-  animation: slide-down 0.3s ease-out;
+  animation: slide-down 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-pulse-shadow {
@@ -323,7 +473,7 @@ body {
 }
 
 .animate-shake {
-  animation: shake 0.4s ease;
+  animation: shake 0.5s ease;
 }
 
 .animate-float {
@@ -335,9 +485,43 @@ body {
 }
 
 .animate-shimmer {
-  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.5) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, var(--surface) 50%, transparent 100%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+/* Stagger children animations */
+.stagger-children>* {
+  opacity: 0;
+  animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.stagger-children>*:nth-child(1) {
+  animation-delay: 0.05s;
+}
+
+.stagger-children>*:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.stagger-children>*:nth-child(3) {
+  animation-delay: 0.15s;
+}
+
+.stagger-children>*:nth-child(4) {
+  animation-delay: 0.2s;
+}
+
+.stagger-children>*:nth-child(5) {
+  animation-delay: 0.25s;
+}
+
+.stagger-children>*:nth-child(6) {
+  animation-delay: 0.3s;
 }
 
 /* ========================================
@@ -348,11 +532,11 @@ body {
   background: var(--surface);
   border: var(--border-width) solid var(--border);
   box-shadow: var(--shadow-brutal);
-  transition: all var(--transition-bounce);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .neo-card:hover {
-  transform: translate(-2px, -2px);
+  transform: translate(-3px, -3px);
   box-shadow: var(--shadow-brutal-hover);
 }
 
@@ -375,12 +559,31 @@ body {
   border: var(--border-width) solid var(--border);
   box-shadow: var(--shadow-brutal);
   cursor: pointer;
-  transition: all var(--transition-bounce);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.neo-button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.4s ease, height 0.4s ease;
+}
+
+.neo-button:hover::before {
+  width: 300px;
+  height: 300px;
 }
 
 .neo-button:hover {
-  background: var(--primary-hover);
-  transform: translate(-2px, -2px);
+  transform: translate(-3px, -3px);
   box-shadow: var(--shadow-brutal-hover);
 }
 
@@ -402,12 +605,13 @@ body {
   font-size: 14px;
   background: var(--surface);
   border: var(--border-width) solid var(--border);
-  transition: all var(--transition-fast);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .neo-input:focus {
   outline: none;
-  box-shadow: 0 0 0 3px var(--yellow);
+  box-shadow: 0 0 0 4px var(--yellow);
+  transform: scale(1.01);
 }
 
 .neo-input::placeholder {
@@ -415,27 +619,51 @@ body {
 }
 
 /* ========================================
-   COLOR VARIANTS
+   SCROLL ANIMATION UTILITIES
    ======================================== */
 
-.neo-pink {
-  --primary: var(--pink);
-  --primary-hover: var(--pink-hover);
+.scroll-fade-in {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.neo-mint {
-  --primary: var(--mint);
-  --primary-hover: var(--mint-hover);
+.scroll-fade-in.visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
-.neo-sky {
-  --primary: var(--sky);
-  --primary-hover: var(--sky-hover);
+.scroll-slide-left {
+  opacity: 0;
+  transform: translateX(-50px);
+  transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.neo-lavender {
-  --primary: var(--lavender);
-  --primary-hover: var(--lavender-hover);
+.scroll-slide-left.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.scroll-slide-right {
+  opacity: 0;
+  transform: translateX(50px);
+  transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.scroll-slide-right.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.scroll-scale-in {
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.scroll-scale-in.visible {
+  opacity: 1;
+  transform: scale(1);
 }
 
 /* ========================================
@@ -474,5 +702,13 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .scroll-fade-in,
+  .scroll-slide-left,
+  .scroll-slide-right,
+  .scroll-scale-in {
+    opacity: 1;
+    transform: none;
   }
 }

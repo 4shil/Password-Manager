@@ -1,4 +1,7 @@
+'use client';
+
 import * as React from 'react';
+import { motion } from 'framer-motion';
 
 import { cn } from '@/lib/cn';
 
@@ -6,24 +9,32 @@ const Card = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div
+  <motion.div
     ref={ref}
     className={cn(
       // Base
       'relative overflow-hidden',
       // Colors
-      'bg-white',
+      'bg-[var(--surface)]',
       // Border
-      'border-[3px] border-[#1a1a1a]',
+      'border-[3px] border-[var(--border)]',
       // Shadow
-      'shadow-[6px_6px_0_#1a1a1a]',
-      // Transition
-      'transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]',
-      // Hover
-      'hover:translate-x-[-2px] hover:translate-y-[-2px]',
-      'hover:shadow-[8px_8px_0_#1a1a1a]',
+      'shadow-[var(--shadow-brutal)]',
       className
     )}
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    whileHover={{
+      x: -3,
+      y: -3,
+    }}
+    transition={{
+      type: 'spring',
+      stiffness: 300,
+      damping: 20,
+      opacity: { duration: 0.3 },
+      y: { duration: 0.3 }
+    }}
     {...props}
   />
 ));
@@ -48,7 +59,7 @@ const CardTitle = React.forwardRef<
   <h3
     ref={ref}
     className={cn(
-      'text-xl font-bold tracking-tight leading-none text-[#1a1a1a]',
+      'text-xl font-bold tracking-tight leading-none text-[var(--text)]',
       className
     )}
     {...props}
@@ -62,7 +73,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn('text-sm text-[#666666]', className)}
+    className={cn('text-sm text-[var(--text-muted)]', className)}
     {...props}
   />
 ));

@@ -1,19 +1,34 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { toast } from '@/components/ui/use-toast';
 import { signupSchema, type SignupInput } from '@/lib/validators';
 import { supabase } from '@/lib/supabase/client';
 import { generateSalt, deriveKEK } from '@/lib/crypto/derive';
 import { generateVaultKey, wrapVaultKey } from '@/lib/crypto/keys';
 import { Shield, AlertCircle, Key, Loader2, Sparkles, Lock } from 'lucide-react';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
+};
 
 // Password strength calculator
 function calculateStrength(password: string): number {
@@ -25,11 +40,11 @@ function calculateStrength(password: string): number {
   return Math.round(Math.log2(Math.pow(poolSize || 1, password.length)));
 }
 
-function getStrengthLevel(strength: number): { label: string; color: string; bg: string; width: string } {
-  if (strength < 40) return { label: 'Weak', color: '#FF8A80', bg: '#FFE5E2', width: '25%' };
-  if (strength < 60) return { label: 'Okay', color: '#FFB74D', bg: '#FFF3E0', width: '50%' };
-  if (strength < 80) return { label: 'Strong', color: '#7DD3FC', bg: '#E0F7FF', width: '75%' };
-  return { label: 'Very Strong', color: '#A0F5D3', bg: '#E8FFF5', width: '100%' };
+function getStrengthLevel(strength: number): { label: string; color: string; width: string } {
+  if (strength < 40) return { label: 'Weak', color: 'var(--coral)', width: '25%' };
+  if (strength < 60) return { label: 'Okay', color: 'var(--orange)', width: '50%' };
+  if (strength < 80) return { label: 'Strong', color: 'var(--sky)', width: '75%' };
+  return { label: 'Very Strong', color: 'var(--mint)', width: '100%' };
 }
 
 export default function SignupPage() {
@@ -53,7 +68,6 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
-      // Create Supabase user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
@@ -77,7 +91,6 @@ export default function SignupPage() {
         return;
       }
 
-      // Email confirmation required
       if (!authData.session) {
         toast({
           title: 'Check your email',
@@ -87,13 +100,11 @@ export default function SignupPage() {
         return;
       }
 
-      // Generate crypto materials
       const salt = generateSalt();
       const kek = await deriveKEK(data.masterPassword, salt);
       const vaultKey = await generateVaultKey();
       const { wrappedB64, ivB64 } = await wrapVaultKey(vaultKey, kek);
 
-      // Store wrapped vault key
       const { error: dbError } = await supabase.from('user_keys').insert({
         user_id: authData.user.id,
         kdf: 'pbkdf2-sha256',
@@ -131,54 +142,93 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-[#FFFDF5] relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-6 bg-[var(--background)] relative overflow-hidden transition-colors">
       {/* Background pattern */}
       <div
-        className="fixed inset-0 pointer-events-none opacity-30"
+        className="fixed inset-0 pointer-events-none opacity-20"
         style={{
-          backgroundImage: 'radial-gradient(circle, #1a1a1a 1px, transparent 1px)',
+          backgroundImage: 'radial-gradient(circle, var(--border) 1px, transparent 1px)',
           backgroundSize: '24px 24px'
         }}
       />
 
+      {/* Theme toggle */}
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
+
       {/* Decorative shapes */}
-      <div className="absolute top-10 right-32 w-40 h-40 bg-[#FF6B9D] border-[3px] border-[#1a1a1a] -rotate-12 hidden md:block" />
-      <div className="absolute bottom-32 left-20 w-28 h-28 bg-[#7DD3FC] border-[3px] border-[#1a1a1a] rotate-6 hidden md:block" />
-      <div className="absolute top-1/3 left-32 w-20 h-20 bg-[#A0F5D3] border-[3px] border-[#1a1a1a] rotate-45 hidden md:block" />
+      <motion.div
+        initial={{ scale: 0, rotate: 0 }}
+        animate={{ scale: 1, rotate: -12 }}
+        transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+        className="absolute top-10 right-32 w-40 h-40 bg-[var(--pink)] border-[3px] border-[var(--border)] hidden md:block"
+      />
+      <motion.div
+        initial={{ scale: 0, rotate: 0 }}
+        animate={{ scale: 1, rotate: 6 }}
+        transition={{ delay: 0.3, type: 'spring', stiffness: 200 }}
+        className="absolute bottom-32 left-20 w-28 h-28 bg-[var(--sky)] border-[3px] border-[var(--border)] hidden md:block"
+      />
+      <motion.div
+        initial={{ scale: 0, rotate: 0 }}
+        animate={{ scale: 1, rotate: 45 }}
+        transition={{ delay: 0.4, type: 'spring', stiffness: 200 }}
+        className="absolute top-1/3 left-32 w-20 h-20 bg-[var(--mint)] border-[3px] border-[var(--border)] hidden md:block"
+      />
 
       {/* Signup card */}
-      <div className="relative z-10 w-full max-w-lg">
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="relative z-10 w-full max-w-lg"
+      >
         {/* Card header bar */}
-        <div className="flex items-center justify-between px-4 py-3 bg-[#A0F5D3] border-[3px] border-b-0 border-[#1a1a1a]">
+        <motion.div
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+          className="flex items-center justify-between px-4 py-3 bg-[var(--mint)] border-[3px] border-b-0 border-[var(--border)] origin-left"
+        >
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-[#FF8A80] border border-[#1a1a1a]" />
-            <div className="w-3 h-3 rounded-full bg-[#FFE156] border border-[#1a1a1a]" />
-            <div className="w-3 h-3 rounded-full bg-[#A0F5D3] border border-[#1a1a1a]" />
+            <div className="w-3 h-3 rounded-full bg-[var(--coral)] border border-[var(--border)]" />
+            <div className="w-3 h-3 rounded-full bg-[var(--yellow)] border border-[var(--border)]" />
+            <div className="w-3 h-3 rounded-full bg-[var(--mint)] border border-[var(--border)]" />
           </div>
           <span className="text-sm font-bold text-[#1a1a1a]">
             Create Account
           </span>
-        </div>
+        </motion.div>
 
         {/* Card body */}
-        <div className="p-8 bg-white border-[3px] border-[#1a1a1a] shadow-[8px_8px_0_#1a1a1a]">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="p-8 bg-[var(--surface)] border-[3px] border-[var(--border)] shadow-[8px_8px_0_var(--shadow-color)]"
+        >
           {/* Header */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-[#FFE156] border-[3px] border-[#1a1a1a] shadow-[3px_3px_0_#1a1a1a] mb-6">
+          <motion.div variants={itemVariants} className="text-center mb-8">
+            <motion.div
+              className="inline-flex items-center justify-center w-20 h-20 bg-[var(--yellow)] border-[3px] border-[var(--border)] shadow-[3px_3px_0_var(--shadow-color)] mb-6"
+              whileHover={{ rotate: [0, -10, 10, 0] }}
+              transition={{ duration: 0.5 }}
+            >
               <Key className="h-10 w-10 text-[#1a1a1a]" />
-            </div>
-            <h1 className="text-2xl font-bold text-[#1a1a1a] mb-2">
+            </motion.div>
+            <h1 className="text-2xl font-bold text-[var(--text)] mb-2">
               Create your vault
             </h1>
-            <p className="text-sm text-[#666666]">
+            <p className="text-sm text-[var(--text-muted)]">
               Set up your secure password manager
             </p>
-          </div>
+          </motion.div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             {/* Email */}
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-bold text-[#1a1a1a]">
+            <motion.div variants={itemVariants} className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-bold text-[var(--text)]">
                 Email
               </Label>
               <Input
@@ -188,17 +238,24 @@ export default function SignupPage() {
                 {...register('email')}
                 disabled={isLoading}
               />
-              {errors.email && (
-                <p className="text-sm text-[#FF8A80] flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  {errors.email.message}
-                </p>
-              )}
-            </div>
+              <AnimatePresence>
+                {errors.email && (
+                  <motion.p
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="text-sm text-[var(--coral)] flex items-center gap-2"
+                  >
+                    <AlertCircle className="h-4 w-4" />
+                    {errors.email.message}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </motion.div>
 
             {/* Password */}
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-bold text-[#1a1a1a]">
+            <motion.div variants={itemVariants} className="space-y-2">
+              <Label htmlFor="password" className="text-sm font-bold text-[var(--text)]">
                 Password
               </Label>
               <Input
@@ -208,17 +265,24 @@ export default function SignupPage() {
                 {...register('password')}
                 disabled={isLoading}
               />
-              {errors.password && (
-                <p className="text-sm text-[#FF8A80] flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  {errors.password.message}
-                </p>
-              )}
-            </div>
+              <AnimatePresence>
+                {errors.password && (
+                  <motion.p
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="text-sm text-[var(--coral)] flex items-center gap-2"
+                  >
+                    <AlertCircle className="h-4 w-4" />
+                    {errors.password.message}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </motion.div>
 
             {/* Confirm Password */}
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-sm font-bold text-[#1a1a1a]">
+            <motion.div variants={itemVariants} className="space-y-2">
+              <Label htmlFor="confirmPassword" className="text-sm font-bold text-[var(--text)]">
                 Confirm Password
               </Label>
               <Input
@@ -228,33 +292,41 @@ export default function SignupPage() {
                 {...register('confirmPassword')}
                 disabled={isLoading}
               />
-              {errors.confirmPassword && (
-                <p className="text-sm text-[#FF8A80] flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  {errors.confirmPassword.message}
-                </p>
-              )}
-            </div>
+              <AnimatePresence>
+                {errors.confirmPassword && (
+                  <motion.p
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="text-sm text-[var(--coral)] flex items-center gap-2"
+                  >
+                    <AlertCircle className="h-4 w-4" />
+                    {errors.confirmPassword.message}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </motion.div>
 
             {/* Master Password Warning */}
-            <div className="p-4 bg-[#FFF3E0] border-[3px] border-[#1a1a1a]">
+            <motion.div
+              variants={itemVariants}
+              className="p-4 bg-[var(--orange)] border-[3px] border-[var(--border)]"
+            >
               <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-[#FFB74D] shrink-0 mt-0.5" />
+                <AlertCircle className="h-5 w-5 text-[#1a1a1a] shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-bold text-[#1a1a1a] mb-1">
-                    Important
-                  </p>
-                  <p className="text-sm text-[#666666]">
+                  <p className="text-sm font-bold text-[#1a1a1a] mb-1">Important</p>
+                  <p className="text-sm text-[#1a1a1a]/80">
                     Your <span className="font-bold">Master Password</span> encrypts all your data.
-                    If you forget it, <span className="text-[#FF8A80] font-bold">we cannot recover it</span>.
+                    If you forget it, <span className="font-bold">we cannot recover it</span>.
                   </p>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
             {/* Master Password */}
-            <div className="space-y-2">
-              <Label htmlFor="masterPassword" className="text-sm font-bold text-[#FF6B9D]">
+            <motion.div variants={itemVariants} className="space-y-2">
+              <Label htmlFor="masterPassword" className="text-sm font-bold text-[var(--pink)]">
                 Master Password
               </Label>
               <Input
@@ -263,46 +335,64 @@ export default function SignupPage() {
                 placeholder="••••••••••••••••"
                 {...register('masterPassword')}
                 disabled={isLoading}
-                className="border-[#FF6B9D]"
+                className="border-[var(--pink)]"
               />
 
               {/* Strength meter */}
-              {masterPassword && (
-                <div className="space-y-2">
-                  <div className="h-2 bg-[#F5F5F5] border-[2px] border-[#1a1a1a] overflow-hidden">
-                    <div
-                      className="h-full transition-all duration-300"
-                      style={{
-                        width: strengthLevel.width,
-                        backgroundColor: strengthLevel.color,
-                      }}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-[#666666]">
-                      Strength: <span className="font-bold text-[#1a1a1a]">{strength} bits</span>
-                    </span>
-                    <span
-                      className="font-bold px-2 py-0.5 border-[2px] border-[#1a1a1a]"
-                      style={{ backgroundColor: strengthLevel.color }}
-                    >
-                      {strengthLevel.label}
-                    </span>
-                  </div>
-                </div>
-              )}
+              <AnimatePresence>
+                {masterPassword && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-2"
+                  >
+                    <div className="h-2 bg-[var(--muted)] border-[2px] border-[var(--border)] overflow-hidden">
+                      <motion.div
+                        className="h-full"
+                        initial={{ width: 0 }}
+                        animate={{ width: strengthLevel.width }}
+                        style={{ backgroundColor: strengthLevel.color }}
+                        transition={{ duration: 0.3 }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-[var(--text-muted)]">
+                        Strength: <span className="font-bold text-[var(--text)]">{strength} bits</span>
+                      </span>
+                      <motion.span
+                        className="font-bold px-2 py-0.5 border-[2px] border-[var(--border)]"
+                        style={{ backgroundColor: strengthLevel.color }}
+                        key={strengthLevel.label}
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ type: 'spring', stiffness: 500 }}
+                      >
+                        {strengthLevel.label}
+                      </motion.span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-              {errors.masterPassword && (
-                <p className="text-sm text-[#FF8A80] flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  {errors.masterPassword.message}
-                </p>
-              )}
-            </div>
+              <AnimatePresence>
+                {errors.masterPassword && (
+                  <motion.p
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="text-sm text-[var(--coral)] flex items-center gap-2"
+                  >
+                    <AlertCircle className="h-4 w-4" />
+                    {errors.masterPassword.message}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </motion.div>
 
             {/* Confirm Master Password */}
-            <div className="space-y-2">
-              <Label htmlFor="confirmMasterPassword" className="text-sm font-bold text-[#FF6B9D]">
+            <motion.div variants={itemVariants} className="space-y-2">
+              <Label htmlFor="confirmMasterPassword" className="text-sm font-bold text-[var(--pink)]">
                 Confirm Master Password
               </Label>
               <Input
@@ -311,54 +401,68 @@ export default function SignupPage() {
                 placeholder="••••••••••••••••"
                 {...register('confirmMasterPassword')}
                 disabled={isLoading}
-                className="border-[#FF6B9D]"
+                className="border-[var(--pink)]"
               />
-              {errors.confirmMasterPassword && (
-                <p className="text-sm text-[#FF8A80] flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  {errors.confirmMasterPassword.message}
-                </p>
-              )}
-            </div>
+              <AnimatePresence>
+                {errors.confirmMasterPassword && (
+                  <motion.p
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="text-sm text-[var(--coral)] flex items-center gap-2"
+                  >
+                    <AlertCircle className="h-4 w-4" />
+                    {errors.confirmMasterPassword.message}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </motion.div>
 
             {/* Submit */}
-            <Button type="submit" className="w-full" variant="pink" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Creating account...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Create Account
-                </>
-              )}
-            </Button>
+            <motion.div variants={itemVariants}>
+              <Button type="submit" className="w-full" variant="pink" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Creating account...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Create Account
+                  </>
+                )}
+              </Button>
+            </motion.div>
 
             {/* Login link */}
-            <div className="text-center pt-4 border-t-[2px] border-[#e5e5e5]">
-              <p className="text-sm text-[#666666]">
+            <motion.div variants={itemVariants} className="text-center pt-4 border-t-[2px] border-[var(--border-light)]">
+              <p className="text-sm text-[var(--text-muted)]">
                 Already have an account?{' '}
                 <Link
                   href="/login"
-                  className="text-[#7DD3FC] hover:underline font-bold"
+                  className="text-[var(--sky)] hover:underline font-bold"
                 >
                   Sign in →
                 </Link>
               </p>
-            </div>
+            </motion.div>
           </form>
-        </div>
+        </motion.div>
 
         {/* Footer */}
-        <div className="flex items-center justify-center gap-2 mt-6">
-          <Lock className="h-4 w-4 text-[#999999]" />
-          <span className="text-sm text-[#999999]">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6 }}
+          className="flex items-center justify-center gap-2 mt-6"
+        >
+          <Lock className="h-4 w-4 text-[var(--text-muted)]" />
+          <span className="text-sm text-[var(--text-muted)]">
             Your passwords are encrypted on your device
           </span>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }

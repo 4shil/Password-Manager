@@ -1,19 +1,17 @@
 'use client';
 
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Check, Copy } from 'lucide-react';
 import { Button } from './ui/button';
-import { Copy, Check } from 'lucide-react';
 import { toast } from './ui/use-toast';
-import { cn } from '@/lib/cn';
 
 interface CopyButtonProps {
   text: string;
   label?: string;
-  onCopy?: () => void;
-  className?: string;
 }
 
-export function CopyButton({ text, label = 'Copy', onCopy, className }: CopyButtonProps) {
+export function CopyButton({ text, label = 'Text' }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -21,40 +19,57 @@ export function CopyButton({ text, label = 'Copy', onCopy, className }: CopyButt
       await navigator.clipboard.writeText(text);
       setCopied(true);
 
-      if (onCopy) {
-        onCopy();
-      }
-
       toast({
         title: 'Copied!',
         description: `${label} copied to clipboard`,
       });
 
-      setTimeout(() => {
-        setCopied(false);
-      }, 2000);
+      setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       toast({
-        title: 'Error',
-        description: 'Failed to copy to clipboard',
+        title: 'Copy failed',
+        description: 'Could not copy to clipboard',
         variant: 'destructive',
       });
     }
   };
 
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={handleCopy}
-      aria-label={label}
-      className={cn('h-8 w-8', className)}
+    <motion.div
+      whileTap={{ scale: 0.9 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 17 }}
     >
-      {copied ? (
-        <Check className="h-4 w-4 text-green-600" />
-      ) : (
-        <Copy className="h-4 w-4" />
-      )}
-    </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8"
+        onClick={handleCopy}
+        aria-label={`Copy ${label}`}
+      >
+        <AnimatePresence mode="wait">
+          {copied ? (
+            <motion.div
+              key="check"
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              exit={{ scale: 0, rotate: 180 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+            >
+              <Check className="h-4 w-4 text-[var(--mint)]" />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="copy"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+            >
+              <Copy className="h-4 w-4" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Button>
+    </motion.div>
   );
 }

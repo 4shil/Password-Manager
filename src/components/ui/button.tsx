@@ -1,76 +1,57 @@
+'use client';
+
 import * as React from 'react';
 import { Slot } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
+import { motion, HTMLMotionProps } from 'framer-motion';
 
 import { cn } from '@/lib/cn';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap font-bold tracking-wide ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFE156] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap font-bold tracking-wide ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--yellow)] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 relative overflow-hidden',
   {
     variants: {
       variant: {
         default: [
-          'bg-[#FFE156] text-[#1a1a1a]',
-          'border-[3px] border-[#1a1a1a]',
-          'shadow-[4px_4px_0_#1a1a1a]',
-          'transition-all duration-200',
-          'hover:bg-[#FFD426] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_#1a1a1a]',
-          'active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0_#1a1a1a]',
+          'bg-[var(--yellow)] text-[#1a1a1a]',
+          'border-[3px] border-[var(--border)]',
+          'shadow-[var(--shadow-brutal)]',
         ].join(' '),
         destructive: [
-          'bg-[#FF8A80] text-[#1a1a1a]',
-          'border-[3px] border-[#1a1a1a]',
-          'shadow-[4px_4px_0_#1a1a1a]',
-          'transition-all duration-200',
-          'hover:bg-[#FF6B5B] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_#1a1a1a]',
-          'active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0_#1a1a1a]',
+          'bg-[var(--coral)] text-[#1a1a1a]',
+          'border-[3px] border-[var(--border)]',
+          'shadow-[var(--shadow-brutal)]',
         ].join(' '),
         outline: [
-          'bg-white text-[#1a1a1a]',
-          'border-[3px] border-[#1a1a1a]',
-          'shadow-[4px_4px_0_#1a1a1a]',
-          'transition-all duration-200',
-          'hover:bg-[#FFE156] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_#1a1a1a]',
-          'active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0_#1a1a1a]',
+          'bg-[var(--surface)] text-[var(--text)]',
+          'border-[3px] border-[var(--border)]',
+          'shadow-[var(--shadow-brutal)]',
         ].join(' '),
         secondary: [
-          'bg-[#C4B5FD] text-[#1a1a1a]',
-          'border-[3px] border-[#1a1a1a]',
-          'shadow-[4px_4px_0_#1a1a1a]',
-          'transition-all duration-200',
-          'hover:bg-[#A78BFA] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_#1a1a1a]',
-          'active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0_#1a1a1a]',
+          'bg-[var(--lavender)] text-[#1a1a1a]',
+          'border-[3px] border-[var(--border)]',
+          'shadow-[var(--shadow-brutal)]',
         ].join(' '),
         ghost: [
-          'bg-transparent text-[#1a1a1a]',
+          'bg-transparent text-[var(--text)]',
           'border-2 border-transparent',
-          'transition-all duration-200',
-          'hover:bg-[#F5F5F5] hover:border-[#1a1a1a]',
+          'hover:bg-[var(--muted)] hover:border-[var(--border)]',
         ].join(' '),
-        link: 'text-[#1a1a1a] underline-offset-4 hover:underline font-bold',
+        link: 'text-[var(--text)] underline-offset-4 hover:underline font-bold',
         success: [
-          'bg-[#A0F5D3] text-[#1a1a1a]',
-          'border-[3px] border-[#1a1a1a]',
-          'shadow-[4px_4px_0_#1a1a1a]',
-          'transition-all duration-200',
-          'hover:bg-[#7EEDC0] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_#1a1a1a]',
-          'active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0_#1a1a1a]',
+          'bg-[var(--mint)] text-[#1a1a1a]',
+          'border-[3px] border-[var(--border)]',
+          'shadow-[var(--shadow-brutal)]',
         ].join(' '),
         pink: [
-          'bg-[#FF6B9D] text-[#1a1a1a]',
-          'border-[3px] border-[#1a1a1a]',
-          'shadow-[4px_4px_0_#1a1a1a]',
-          'transition-all duration-200',
-          'hover:bg-[#FF4785] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_#1a1a1a]',
-          'active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0_#1a1a1a]',
+          'bg-[var(--pink)] text-[#1a1a1a]',
+          'border-[3px] border-[var(--border)]',
+          'shadow-[var(--shadow-brutal)]',
         ].join(' '),
         sky: [
-          'bg-[#7DD3FC] text-[#1a1a1a]',
-          'border-[3px] border-[#1a1a1a]',
-          'shadow-[4px_4px_0_#1a1a1a]',
-          'transition-all duration-200',
-          'hover:bg-[#53C4FC] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_#1a1a1a]',
-          'active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0_#1a1a1a]',
+          'bg-[var(--sky)] text-[#1a1a1a]',
+          'border-[3px] border-[var(--border)]',
+          'shadow-[var(--shadow-brutal)]',
         ].join(' '),
       },
       size: {
@@ -95,14 +76,46 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : 'button';
+  ({ className, variant, size, asChild = false, children, ...props }, ref) => {
+    if (asChild) {
+      return (
+        <Slot
+          className={cn(buttonVariants({ variant, size, className }))}
+          ref={ref}
+          {...props}
+        >
+          {children}
+        </Slot>
+      );
+    }
+
+    const isGhostOrLink = variant === 'ghost' || variant === 'link';
+
     return (
-      <Comp
+      <motion.button
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
-        {...props}
-      />
+        whileHover={isGhostOrLink ? {} : {
+          x: -3,
+          y: -3,
+        }}
+        whileTap={isGhostOrLink ? { scale: 0.98 } : {
+          x: 1,
+          y: 1,
+        }}
+        transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+        {...(props as HTMLMotionProps<"button">)}
+      >
+        {/* Ripple effect */}
+        <motion.span
+          className="absolute inset-0 bg-white/30"
+          initial={{ scale: 0, opacity: 0 }}
+          whileTap={{ scale: 2, opacity: 0.3 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+          style={{ borderRadius: '50%', transformOrigin: 'center' }}
+        />
+        {children}
+      </motion.button>
     );
   }
 );

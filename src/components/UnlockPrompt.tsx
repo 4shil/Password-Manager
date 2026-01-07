@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase/client';
 import { deriveKEK } from '@/lib/crypto/derive';
 import { unwrapVaultKey } from '@/lib/crypto/keys';
@@ -58,7 +59,6 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
     resolver: zodResolver(unlockSchema),
   });
 
-  // Check lockout status
   useEffect(() => {
     const checkLockout = () => {
       const status = isLockedOut();
@@ -127,7 +127,6 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
       try {
         vaultKey = await unwrapVaultKey(wrappedB64, ivB64, kek);
       } catch (e) {
-        // Shake effect on failed attempt
         setShake(true);
         setTimeout(() => setShake(false), 500);
 
@@ -168,45 +167,87 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
 
   return (
     <Dialog open={open} onOpenChange={() => { }}>
-      <DialogContent className="sm:max-w-md bg-white border-[3px] border-[#1a1a1a] shadow-[8px_8px_0_#1a1a1a] p-0" hideClose>
+      <DialogContent className="sm:max-w-md bg-[var(--surface)] border-[3px] border-[var(--border)] shadow-[8px_8px_0_var(--shadow-color)] p-0" hideClose>
         {/* Header bar */}
-        <div className="flex items-center justify-between px-4 py-3 bg-[#C4B5FD] border-b-[3px] border-[#1a1a1a]">
+        <motion.div
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ duration: 0.3 }}
+          className="flex items-center justify-between px-4 py-3 bg-[var(--lavender)] border-b-[3px] border-[var(--border)] origin-left"
+        >
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-[#FF8A80] border border-[#1a1a1a]" />
-            <div className="w-3 h-3 rounded-full bg-[#FFE156] border border-[#1a1a1a]" />
-            <div className="w-3 h-3 rounded-full bg-[#A0F5D3] border border-[#1a1a1a]" />
+            <div className="w-3 h-3 rounded-full bg-[var(--coral)] border border-[var(--border)]" />
+            <div className="w-3 h-3 rounded-full bg-[var(--yellow)] border border-[var(--border)]" />
+            <div className="w-3 h-3 rounded-full bg-[var(--mint)] border border-[var(--border)]" />
           </div>
           <span className="text-sm font-bold text-[#1a1a1a]">
             Unlock Vault
           </span>
-        </div>
+        </motion.div>
 
-        <div className={`p-8 ${shake ? 'animate-shake' : ''}`}>
+        <motion.div
+          className={`p-8 ${shake ? 'animate-shake' : ''}`}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.4 }}
+        >
           <DialogHeader className="text-center space-y-4 mb-8">
             {/* Lock icon */}
-            <div className="mx-auto">
-              <div
-                className={`w-20 h-20 flex items-center justify-center border-[3px] border-[#1a1a1a] shadow-[3px_3px_0_#1a1a1a] ${lockoutStatus.locked
-                    ? 'bg-[#FF8A80]'
+            <motion.div
+              className="mx-auto"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 200, delay: 0.2 }}
+            >
+              <motion.div
+                className={`w-20 h-20 flex items-center justify-center border-[3px] border-[var(--border)] shadow-[3px_3px_0_var(--shadow-color)]`}
+                style={{
+                  backgroundColor: lockoutStatus.locked
+                    ? 'var(--coral)'
                     : unlocking
-                      ? 'bg-[#7DD3FC]'
-                      : 'bg-[#FFE156]'
-                  }`}
+                      ? 'var(--sky)'
+                      : 'var(--yellow)'
+                }}
+                animate={unlocking ? { rotate: [0, -5, 5, 0] } : {}}
+                transition={{ repeat: unlocking ? Infinity : 0, duration: 0.5 }}
               >
-                {lockoutStatus.locked ? (
-                  <AlertCircle className="h-10 w-10 text-[#1a1a1a]" />
-                ) : unlocking ? (
-                  <Fingerprint className="h-10 w-10 text-[#1a1a1a] animate-pulse" />
-                ) : (
-                  <Lock className="h-10 w-10 text-[#1a1a1a]" />
-                )}
-              </div>
-            </div>
+                <AnimatePresence mode="wait">
+                  {lockoutStatus.locked ? (
+                    <motion.div
+                      key="alert"
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      exit={{ scale: 0, rotate: 180 }}
+                    >
+                      <AlertCircle className="h-10 w-10 text-[#1a1a1a]" />
+                    </motion.div>
+                  ) : unlocking ? (
+                    <motion.div
+                      key="fingerprint"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      exit={{ scale: 0 }}
+                    >
+                      <Fingerprint className="h-10 w-10 text-[#1a1a1a]" />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="lock"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      exit={{ scale: 0 }}
+                    >
+                      <Lock className="h-10 w-10 text-[#1a1a1a]" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            </motion.div>
 
-            <DialogTitle className="text-2xl font-bold text-[#1a1a1a]">
+            <DialogTitle className="text-2xl font-bold text-[var(--text)]">
               {lockoutStatus.locked ? 'Too many attempts' : unlocking ? 'Unlocking...' : 'Vault is locked'}
             </DialogTitle>
-            <DialogDescription className="text-sm text-[#666666]">
+            <DialogDescription className="text-sm text-[var(--text-muted)]">
               {lockoutStatus.locked
                 ? `Please wait ${formatRemainingTime(lockoutStatus.remainingMs)} before trying again`
                 : unlocking
@@ -218,7 +259,7 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="masterPassword" className="text-sm font-bold text-[#1a1a1a]">
+              <Label htmlFor="masterPassword" className="text-sm font-bold text-[var(--text)]">
                 Master Password
               </Label>
               <Input
@@ -230,21 +271,33 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
                 disabled={unlocking || lockoutStatus.locked}
               />
 
-              {/* Error */}
-              {(errors.masterPassword || error) && (
-                <p className="text-sm text-[#FF8A80] flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  {errors.masterPassword?.message || error}
-                </p>
-              )}
+              <AnimatePresence>
+                {(errors.masterPassword || error) && (
+                  <motion.p
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="text-sm text-[var(--coral)] flex items-center gap-2"
+                  >
+                    <AlertCircle className="h-4 w-4" />
+                    {errors.masterPassword?.message || error}
+                  </motion.p>
+                )}
+              </AnimatePresence>
 
-              {/* Attempts warning */}
-              {!lockoutStatus.locked && lockoutStatus.remainingAttempts < 5 && lockoutStatus.remainingAttempts > 0 && (
-                <p className="text-sm text-[#FFB74D] flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  {lockoutStatus.remainingAttempts} attempts remaining
-                </p>
-              )}
+              <AnimatePresence>
+                {!lockoutStatus.locked && lockoutStatus.remainingAttempts < 5 && lockoutStatus.remainingAttempts > 0 && (
+                  <motion.p
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="text-sm text-[var(--orange)] flex items-center gap-2"
+                  >
+                    <AlertCircle className="h-4 w-4" />
+                    {lockoutStatus.remainingAttempts} attempts remaining
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </div>
 
             <Button
@@ -271,15 +324,14 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
               )}
             </Button>
 
-            {/* Security note */}
-            <div className="flex items-center justify-center gap-2 pt-4 border-t-[2px] border-[#e5e5e5]">
-              <Shield className="h-4 w-4 text-[#999999]" />
-              <span className="text-sm text-[#999999]">
+            <div className="flex items-center justify-center gap-2 pt-4 border-t-[2px] border-[var(--border-light)]">
+              <Shield className="h-4 w-4 text-[var(--text-muted)]" />
+              <span className="text-sm text-[var(--text-muted)]">
                 Your data is encrypted locally
               </span>
             </div>
           </form>
-        </div>
+        </motion.div>
       </DialogContent>
     </Dialog>
   );
