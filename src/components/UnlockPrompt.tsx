@@ -91,16 +91,21 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
         return;
       }
 
-      const { data: keyData, error: keyError } = await supabase
+      const { data: keyDataArray, error: keyError } = await supabase
         .from('user_keys')
         .select('*')
-        .eq('user_id', userData.user.id)
-        .single();
+        .eq('user_id', userData.user.id);
 
-      if (keyError || !keyData) {
+      if (keyError) {
+        throw new Error(`Database error: ${keyError.message}`);
+      }
+
+      const keyData = keyDataArray && keyDataArray.length > 0 ? keyDataArray[0] : null;
+
+      if (!keyData) {
         toast({
           title: 'Vault not found',
-          description: 'Please set up your vault first',
+          description: 'Your vault has not been set up yet.',
           variant: 'destructive',
         });
         router.push('/setup-vault');

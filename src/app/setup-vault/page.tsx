@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { supabase } from '@/lib/supabase/client';
-import { generateSalt, deriveKEK } from '@/lib/crypto/derive';
+import { generateSalt, deriveKEK, getArgon2Params } from '@/lib/crypto/derive';
 import { generateVaultKey, wrapVaultKey } from '@/lib/crypto/keys';
 import { toast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
@@ -71,12 +71,12 @@ export default function SetupVaultPage() {
       const kek = await deriveKEK(data.masterPassword, salt);
       const vaultKey = await generateVaultKey();
       const { wrappedB64, ivB64 } = await wrapVaultKey(vaultKey, kek);
+      const argon2Params = getArgon2Params();
 
       // Store wrapped vault key
       const { error: dbError } = await supabase.from('user_keys').insert({
         user_id: userData.user.id,
-        kdf: 'pbkdf2-sha256',
-        kdf_iterations: 200000,
+        kdf: argon2Params.algorithm,
         salt,
         vault_key_wrapped: wrappedB64,
         vk_iv: ivB64,

@@ -74,23 +74,52 @@ export default function LoginPage() {
       setStep('unlocking');
 
       // 3. Fetch user's encryption keys
-      const { data: keyData, error: keyError } = await supabase
+      const { data: keyDataArray, error: keyError } = await supabase
         .from('user_keys')
         .select('*')
-        .eq('user_id', authData.user.id)
-        .single();
+        .eq('user_id', authData.user.id);
 
-      if (keyError || !keyData) {
-        toast({
-          title: 'Vault not found',
-          description: 'Your vault may not be set up yet',
-          variant: 'destructive',
-        });
-        setStep('form');
-        return;
+      if (keyError) {
+        throw new Error(`Database error: ${keyError.message}`);
       }
 
-      // 4. Derive KEK from login password
+      let keyData = keyDataArray && keyDataArray.length > 0 ? keyDataArray[0] : null;
+
+      // 4. Auto-initialize vault if missing
+      if (!keyData) {
+        setStep('unlocking'); // Reuse unlocking state for setup
+
+        const argon2Params = getArgon2Params();
+        const salt = generateSalt();
+        const kek = await deriveKEK(data.password, salt);
+        const vaultKey = await generateVaultKey();
+        const { wrappedB64, ivB64 } = await wrapVaultKey(vaultKey, kek);
+
+        const { data: newKeyData, error: setupError } = await supabase
+          .from('user_keys')
+          .insert({
+            user_id: authData.user.id,
+            kdf: argon2Params.algorithm,
+            salt,
+            vault_key_wrapped: wrappedB64,
+            vk_iv: ivB64,
+          })
+          .select()
+          .single();
+
+        if (setupError) {
+          throw new Error('Failed to initialize your vault. Please try again later.');
+        }
+
+        keyData = newKeyData;
+
+        toast({
+          title: 'Vault Initialized!',
+          description: 'Your secure vault has been set up automatically.',
+        });
+      }
+
+      // 5. Derive KEK from login password
       const wrappedB64 = keyData.vault_key_wrapped ?? keyData.vaultKeyWrapped ?? keyData.wrapped;
       const ivB64 = keyData.vk_iv ?? keyData.iv ?? keyData.vkIv;
 
@@ -100,10 +129,10 @@ export default function LoginPage() {
 
       const kek = await deriveKEK(data.password, keyData.salt);
 
-      // 5. Unwrap vault key
+      // 6. Unwrap vault key
       const vaultKey = await unwrapVaultKey(wrappedB64, ivB64, kek);
 
-      // 6. Store key in memory
+      // 7. Store key in memory
       setVaultKey(vaultKey);
 
       toast({

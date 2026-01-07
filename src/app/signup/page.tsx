@@ -101,7 +101,7 @@ export default function SignupPage() {
       if (!authData.session) {
         toast({
           title: 'Check your email',
-          description: 'We sent you a confirmation link.',
+          description: 'We sent you a confirmation link. Your vault will be initialized on your first login.',
         });
         router.push('/confirm-email');
         return;
@@ -125,12 +125,10 @@ export default function SignupPage() {
 
       if (dbError) {
         toast({
-          title: 'Setup failed',
-          description: dbError.message || 'Could not set up encryption',
-          variant: 'destructive',
+          title: 'Encryption setup failed',
+          description: 'Your account was created but encryption setup failed. We will try again on your first login.',
+          variant: 'warning',
         });
-        setStep('form');
-        return;
       }
 
       toast({
