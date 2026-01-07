@@ -126,21 +126,21 @@ function PasswordAnimation() {
 
 // Key derivation animation
 function KeyDerivationAnimation() {
-    const [iterations, setIterations] = useState(0);
+    const [progress, setProgress] = useState(0);
     const ref = useRef(null);
     const isInView = useInView(ref, { once: true });
 
     useEffect(() => {
         if (isInView) {
             const interval = setInterval(() => {
-                setIterations(prev => {
-                    if (prev >= 200000) {
+                setProgress(prev => {
+                    if (prev >= 100) {
                         clearInterval(interval);
-                        return 200000;
+                        return 100;
                     }
-                    return prev + 5000;
+                    return prev + 2;
                 });
-            }, 50);
+            }, 30);
             return () => clearInterval(interval);
         }
     }, [isInView]);
@@ -148,16 +148,16 @@ function KeyDerivationAnimation() {
     return (
         <div ref={ref} className="space-y-4">
             <div className="flex items-center justify-between">
-                <span className="text-sm font-bold text-[var(--text)]">PBKDF2-SHA256</span>
+                <span className="text-sm font-bold text-[var(--text)]">Argon2id</span>
                 <span className="font-mono text-[var(--pink)] font-bold">
-                    {iterations.toLocaleString()} iterations
+                    {progress}% complete
                 </span>
             </div>
             <div className="h-4 bg-[var(--muted)] border-[2px] border-[var(--border)] overflow-hidden">
                 <motion.div
                     className="h-full bg-[var(--pink)]"
                     initial={{ width: '0%' }}
-                    animate={{ width: `${(iterations / 200000) * 100}%` }}
+                    animate={{ width: `${progress}%` }}
                     transition={{ duration: 0.1 }}
                 />
             </div>
@@ -168,12 +168,15 @@ function KeyDerivationAnimation() {
                         className={`text-center p-2 text-sm font-bold ${i === 4 ? 'bg-[var(--mint)] border-[2px] border-[var(--border)]' : ''
                             }`}
                         initial={{ opacity: 0 }}
-                        animate={{ opacity: iterations > (i * 50000) ? 1 : 0.3 }}
+                        animate={{ opacity: progress > (i * 20) ? 1 : 0.3 }}
                     >
                         {item}
                     </motion.div>
                 ))}
             </div>
+            <p className="text-xs text-[var(--text-muted)]">
+                64MB memory • 4 threads • Maximum security
+            </p>
         </div>
     );
 }
@@ -294,7 +297,7 @@ export function EncryptionExplainer() {
         {
             number: 2,
             title: 'We create a strong key',
-            description: 'We run your password through 200,000 rounds of encryption to create an unbreakable key.',
+            description: 'Using Argon2id, we derive an unbreakable encryption key from your password using 64MB of memory.',
             icon: <Lock className="w-4 h-4" />,
             color: 'var(--pink)',
             animation: <KeyDerivationAnimation />,

@@ -1,44 +1,38 @@
 /**
  * Zod Validation Schemas
+ * Simplified auth - single password for both auth and encryption
  */
 
 import { z } from 'zod';
 
-// Auth Schemas
+// Auth Schemas - Simplified (single password)
 export const signupSchema = z.object({
-  email: z.string().email('Invalid email address'),
+  email: z.string().email('Please enter a valid email'),
   password: z
     .string()
-    .min(8, 'Password must be at least 8 characters')
-    .max(128, 'Password too long'),
+    .min(12, 'Password must be at least 12 characters')
+    .max(128, 'Password is too long')
+    .regex(/[a-z]/, 'Include at least one lowercase letter')
+    .regex(/[A-Z]/, 'Include at least one uppercase letter')
+    .regex(/\d/, 'Include at least one number'),
   confirmPassword: z.string(),
-  masterPassword: z
-    .string()
-    .min(12, 'Master password must be at least 12 characters')
-    .max(128, 'Master password too long'),
-  confirmMasterPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ['confirmPassword'],
-}).refine((data) => data.masterPassword === data.confirmMasterPassword, {
-  message: "Master passwords don't match",
-  path: ['confirmMasterPassword'],
-}).refine((data) => data.password !== data.masterPassword, {
-  message: "Master password must be different from account password",
-  path: ['masterPassword'],
 });
 
 export const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
+  email: z.string().email('Please enter a valid email'),
   password: z.string().min(1, 'Password is required'),
 });
 
-export const masterPasswordSchema = z.object({
-  masterPassword: z.string().min(1, 'Master password is required'),
+// Unlock schema (same as login password)
+export const unlockSchema = z.object({
+  password: z.string().min(1, 'Password is required'),
 });
 
 export const resetPasswordSchema = z.object({
-  email: z.string().email('Invalid email address'),
+  email: z.string().email('Please enter a valid email'),
 });
 
 // Vault Item Schemas
@@ -86,7 +80,7 @@ export const passwordGeneratorSchema = z.object({
 // Type exports
 export type SignupInput = z.infer<typeof signupSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
-export type MasterPasswordInput = z.infer<typeof masterPasswordSchema>;
+export type UnlockInput = z.infer<typeof unlockSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type VaultItemPayload = z.infer<typeof vaultItemPayloadSchema>;
 export type VaultItemExtra = z.infer<typeof vaultItemExtraSchema>;
@@ -98,7 +92,7 @@ export type PasswordGeneratorOptions = z.infer<typeof passwordGeneratorSchema>;
 export interface UserKeys {
   user_id: string;
   kdf: string;
-  kdf_iterations: number;
+  kdf_iterations?: number; // Optional for Argon2
   salt: string;
   vault_key_wrapped: string;
   vk_iv: string;

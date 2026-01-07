@@ -1,0 +1,36 @@
+
+> zero-knowledge-password-manager@1.0.0 build
+> next build
+
+  Γû▓ Next.js 14.2.0
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully
+   Linting and checking validity of types ...
+ Γ¿» ESLint: Plugin "@typescript-eslint" was conflicted between ".eslintrc.json" and "..\..\.eslintrc.json".
+Failed to compile.
+
+./src/app/page.tsx:130:13
+Type error: Type '{ hidden: { opacity: number; y: number; }; visible: { opacity: number; y: number; transition: { duration: number; ease: number[]; }; }; }' is not assignable to type 'Variants'.
+  Property 'visible' is incompatible with index signature.
+    Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type 'Variant'.
+      Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type 'TargetAndTransition'.
+        Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type '{ transition?: Transition<any> | undefined; transitionEnd?: ResolvedValues | undefined; }'.
+          Types of property 'transition' are incompatible.
+            Type '{ duration: number; ease: number[]; }' is not assignable to type 'Transition<any> | undefined'.
+              Type '{ duration: number; ease: number[]; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+                Type '{ duration: number; ease: number[]; }' is not assignable to type 'ValueAnimationTransition<any>'.
+                  Types of property 'ease' are incompatible.
+                    Type 'number[]' is not assignable to type 'Easing | Easing[] | undefined'.
+                      Type 'number[]' is not assignable to type 'EasingFunction | Easing[]'.
+                        Type 'number[]' is not assignable to type 'Easing[]'.
+                          Type 'number' is not assignable to type 'Easing'.
+
+  128 |           {/* Badge */}
+  129 |           <motion.div
+> 130 |             variants={itemVariants}
+      |             ^
+  131 |             className="inline-flex items-center gap-2 px-4 py-2 mb-8 bg-[var(--mint)] border-[3px] border-[var(--border)] shadow-[3px_3px_0_var(--shadow-color)]"
+  132 |           >
+  133 |             <Lock className="h-4 w-4" />

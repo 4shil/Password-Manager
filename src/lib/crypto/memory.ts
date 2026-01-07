@@ -6,10 +6,10 @@
 const IDLE_TIMEOUT_MS =
   typeof window !== 'undefined'
     ? parseInt(
-        (window as typeof window & { ENV?: { NEXT_PUBLIC_IDLE_TIMEOUT_MS?: string } })
-          .ENV?.NEXT_PUBLIC_IDLE_TIMEOUT_MS || '900000',
-        10
-      )
+      (window as typeof window & { ENV?: { NEXT_PUBLIC_IDLE_TIMEOUT_MS?: string } })
+        .ENV?.NEXT_PUBLIC_IDLE_TIMEOUT_MS || '900000',
+      10
+    )
     : 900000; // 15 minutes default
 
 interface VaultKeyCache {
@@ -36,7 +36,7 @@ const lockCallbacks: Set<LockCallback> = new Set();
 export function cacheVaultKey(key: CryptoKey): void {
   cache.key = key;
   cache.lastActivity = Date.now();
-  
+
   // Clear existing timeout
   if (cache.timeoutId) {
     clearTimeout(cache.timeoutId);
@@ -63,18 +63,18 @@ export function setVaultKey(key: CryptoKey): void {
 export function getVaultKey(): CryptoKey | null {
   if (cache.key) {
     cache.lastActivity = Date.now();
-    
+
     // Reset timeout on activity
     if (cache.timeoutId) {
       clearTimeout(cache.timeoutId);
     }
-    
+
     cache.timeoutId = setTimeout(() => {
       clearVaultKey();
       notifyLockCallbacks();
     }, IDLE_TIMEOUT_MS);
   }
-  
+
   return cache.key;
 }
 
@@ -93,7 +93,7 @@ export function clearVaultKey(): void {
   // Clear the key reference
   cache.key = null;
   cache.lastActivity = 0;
-  
+
   // Clear timeout
   if (cache.timeoutId) {
     clearTimeout(cache.timeoutId);
@@ -108,10 +108,10 @@ export function getTimeUntilLock(): number {
   if (!cache.key) {
     return 0;
   }
-  
+
   const elapsed = Date.now() - cache.lastActivity;
   const remaining = IDLE_TIMEOUT_MS - elapsed;
-  
+
   return Math.max(0, remaining);
 }
 
@@ -120,14 +120,14 @@ export function getTimeUntilLock(): number {
  */
 export function getFormattedTimeUntilLock(): string {
   const ms = getTimeUntilLock();
-  
+
   if (ms === 0) {
     return 'Locked';
   }
-  
+
   const minutes = Math.floor(ms / 60000);
   const seconds = Math.floor((ms % 60000) / 1000);
-  
+
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
@@ -136,7 +136,7 @@ export function getFormattedTimeUntilLock(): string {
  */
 export function onLock(callback: LockCallback): () => void {
   lockCallbacks.add(callback);
-  
+
   // Return unsubscribe function
   return () => {
     lockCallbacks.delete(callback);
@@ -172,3 +172,7 @@ export function updateActivity(): void {
     cache.lastActivity = Date.now();
   }
 }
+
+// Aliases for backwards compatibility
+export const getRemainingTime = getTimeUntilLock;
+export const formatTime = getFormattedTimeUntilLock;

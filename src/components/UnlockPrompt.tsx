@@ -4,12 +4,12 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase/client';
 import { deriveKEK } from '@/lib/crypto/derive';
 import { unwrapVaultKey } from '@/lib/crypto/keys';
 import { setVaultKey } from '@/lib/crypto/memory';
+import { unlockSchema, type UnlockInput } from '@/lib/validators';
 import {
   isLockedOut,
   recordFailedAttempt,
@@ -29,10 +29,6 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Button } from './ui/button';
 import { Lock, Loader2, Shield, Key, AlertCircle, Fingerprint } from 'lucide-react';
-
-const unlockSchema = z.object({
-  masterPassword: z.string().min(1, 'Please enter your master password'),
-});
 
 interface UnlockPromptProps {
   open: boolean;
@@ -55,7 +51,7 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm<{ masterPassword: string }>({
+  } = useForm<UnlockInput>({
     resolver: zodResolver(unlockSchema),
   });
 
@@ -69,7 +65,7 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
     return () => clearInterval(interval);
   }, []);
 
-  const onSubmit = async (data: { masterPassword: string }) => {
+  const onSubmit = async (data: UnlockInput) => {
     if (unlocking) return;
 
     const currentStatus = isLockedOut();
@@ -117,11 +113,7 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
         throw new Error('Vault data is corrupted');
       }
 
-      const kek = await deriveKEK(
-        data.masterPassword,
-        keyData.salt,
-        keyData.kdf_iterations
-      );
+      const kek = await deriveKEK(data.password, keyData.salt);
 
       let vaultKey: CryptoKey;
       try {
@@ -139,7 +131,7 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
           setError(`Wrong password. ${attemptResult.remainingAttempts} tries left`);
         }
 
-        throw new Error('Incorrect master password');
+        throw new Error('Incorrect password');
       }
 
       clearAttempts();
@@ -153,7 +145,7 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
       reset();
       onUnlock();
     } catch (err: any) {
-      if (!error && err?.message !== 'Incorrect master password') {
+      if (!error && err?.message !== 'Incorrect password') {
         toast({
           title: 'Could not unlock',
           description: err?.message ?? 'Please check your password',
@@ -249,30 +241,30 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
             </DialogTitle>
             <DialogDescription className="text-sm text-[var(--text-muted)]">
               {lockoutStatus.locked
-                ? `Please wait ${formatRemainingTime(lockoutStatus.remainingMs)} before trying again`
+                ? `Wait ${formatRemainingTime(lockoutStatus.remainingMs)} before trying again`
                 : unlocking
-                  ? 'Decrypting your data...'
-                  : 'Enter your master password to continue'
+                  ? 'Decrypting your data with Argon2id...'
+                  : 'Enter your password to continue'
               }
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="masterPassword" className="text-sm font-bold text-[var(--text)]">
-                Master Password
+              <Label htmlFor="password" className="text-sm font-bold text-[var(--text)]">
+                Password
               </Label>
               <Input
-                id="masterPassword"
+                id="password"
                 type="password"
                 placeholder="••••••••••••••••"
                 autoFocus
-                {...register('masterPassword')}
+                {...register('password')}
                 disabled={unlocking || lockoutStatus.locked}
               />
 
               <AnimatePresence>
-                {(errors.masterPassword || error) && (
+                {(errors.password || error) && (
                   <motion.p
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
@@ -280,7 +272,7 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
                     className="text-sm text-[var(--coral)] flex items-center gap-2"
                   >
                     <AlertCircle className="h-4 w-4" />
-                    {errors.masterPassword?.message || error}
+                    {errors.password?.message || error}
                   </motion.p>
                 )}
               </AnimatePresence>
@@ -327,7 +319,7 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
             <div className="flex items-center justify-center gap-2 pt-4 border-t-[2px] border-[var(--border-light)]">
               <Shield className="h-4 w-4 text-[var(--text-muted)]" />
               <span className="text-sm text-[var(--text-muted)]">
-                Your data is encrypted locally
+                Encrypted with Argon2id + AES-256
               </span>
             </div>
           </form>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
@@ -13,7 +13,10 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { toast } from '@/components/ui/use-toast';
 import { loginSchema, type LoginInput } from '@/lib/validators';
 import { supabase } from '@/lib/supabase/client';
-import { Lock, Loader2, ArrowRight, AlertCircle, Shield } from 'lucide-react';
+import { deriveKEK } from '@/lib/crypto/derive';
+import { unwrapVaultKey } from '@/lib/crypto/keys';
+import { setVaultKey } from '@/lib/crypto/memory';
+import { Lock, Loader2, ArrowRight, AlertCircle, Shield, Key } from 'lucide-react';
 import { ForgotPasswordDialog } from '@/components/ForgotPasswordDialog';
 
 const containerVariants = {
@@ -32,6 +35,7 @@ const itemVariants = {
 export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [step, setStep] = useState<'form' | 'unlocking'>('form');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [shake, setShake] = useState(false);
 
@@ -47,37 +51,75 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      // 1. Authenticate with Supabase
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       });
 
-      if (error) {
+      if (authError) {
         setShake(true);
         setTimeout(() => setShake(false), 500);
 
         toast({
           title: 'Login failed',
-          description: error.message,
+          description: authError.message,
           variant: 'destructive',
         });
         return;
       }
 
+      // 2. Show unlocking state
+      setStep('unlocking');
+
+      // 3. Fetch user's encryption keys
+      const { data: keyData, error: keyError } = await supabase
+        .from('user_keys')
+        .select('*')
+        .eq('user_id', authData.user.id)
+        .single();
+
+      if (keyError || !keyData) {
+        toast({
+          title: 'Vault not found',
+          description: 'Your vault may not be set up yet',
+          variant: 'destructive',
+        });
+        setStep('form');
+        return;
+      }
+
+      // 4. Derive KEK from login password
+      const wrappedB64 = keyData.vault_key_wrapped ?? keyData.vaultKeyWrapped ?? keyData.wrapped;
+      const ivB64 = keyData.vk_iv ?? keyData.iv ?? keyData.vkIv;
+
+      if (!wrappedB64 || !ivB64) {
+        throw new Error('Vault data is corrupted');
+      }
+
+      const kek = await deriveKEK(data.password, keyData.salt);
+
+      // 5. Unwrap vault key
+      const vaultKey = await unwrapVaultKey(wrappedB64, ivB64, kek);
+
+      // 6. Store key in memory
+      setVaultKey(vaultKey);
+
       toast({
         title: 'Welcome back!',
-        description: 'You are now logged in',
+        description: 'Your vault is unlocked',
       });
 
       router.push('/app');
       router.refresh();
-    } catch (err) {
+    } catch (err: any) {
       setShake(true);
       setTimeout(() => setShake(false), 500);
+      setStep('form');
 
       toast({
-        title: 'Something went wrong',
-        description: 'Please try again',
+        title: 'Could not unlock vault',
+        description: err?.message ?? 'Please check your password',
         variant: 'destructive',
       });
     } finally {
@@ -152,129 +194,157 @@ export default function LoginPage() {
           animate="visible"
           className="p-8 bg-[var(--surface)] border-[3px] border-[var(--border)] shadow-[8px_8px_0_var(--shadow-color)]"
         >
-          {/* Header */}
-          <motion.div variants={itemVariants} className="text-center mb-8">
-            <motion.div
-              className="inline-flex items-center justify-center w-16 h-16 bg-[var(--lavender)] border-[3px] border-[var(--border)] shadow-[3px_3px_0_var(--shadow-color)] mb-6"
-              whileHover={{ rotate: [0, -10, 10, 0] }}
-              transition={{ duration: 0.5 }}
-            >
-              <Lock className="h-8 w-8 text-[#1a1a1a]" />
-            </motion.div>
-            <h1 className="text-2xl font-bold text-[var(--text)] mb-2">
-              Welcome back
-            </h1>
-            <p className="text-sm text-[var(--text-muted)]">
-              Sign in to access your vault
-            </p>
-          </motion.div>
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Email */}
-            <motion.div variants={itemVariants} className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-bold text-[var(--text)]">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                {...register('email')}
-                disabled={isLoading}
-              />
-              <AnimatePresence>
-                {errors.email && (
-                  <motion.p
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="text-sm text-[var(--coral)] flex items-center gap-2"
-                  >
-                    <AlertCircle className="h-4 w-4" />
-                    {errors.email.message}
-                  </motion.p>
-                )}
-              </AnimatePresence>
-            </motion.div>
-
-            {/* Password */}
-            <motion.div variants={itemVariants} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-sm font-bold text-[var(--text)]">
-                  Password
-                </Label>
-                <button
-                  type="button"
-                  onClick={() => setShowForgotPassword(true)}
-                  className="text-sm text-[var(--sky)] hover:underline font-medium"
+          <AnimatePresence mode="wait">
+            {step === 'unlocking' ? (
+              <motion.div
+                key="unlocking"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="text-center py-12"
+              >
+                <motion.div
+                  className="w-16 h-16 mx-auto bg-[var(--sky)] border-[3px] border-[var(--border)] shadow-[3px_3px_0_var(--shadow-color)] flex items-center justify-center mb-6"
+                  animate={{ rotate: [0, 10, -10, 0] }}
+                  transition={{ repeat: Infinity, duration: 1 }}
                 >
-                  Forgot password?
-                </button>
-              </div>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••••••"
-                {...register('password')}
-                disabled={isLoading}
-              />
-              <AnimatePresence>
-                {errors.password && (
-                  <motion.p
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="text-sm text-[var(--coral)] flex items-center gap-2"
+                  <Key className="h-8 w-8 text-[#1a1a1a]" />
+                </motion.div>
+                <h2 className="text-xl font-bold text-[var(--text)] mb-2">
+                  Unlocking vault...
+                </h2>
+                <p className="text-sm text-[var(--text-muted)]">
+                  Decrypting with Argon2id
+                </p>
+              </motion.div>
+            ) : (
+              <motion.div key="form">
+                {/* Header */}
+                <motion.div variants={itemVariants} className="text-center mb-8">
+                  <motion.div
+                    className="inline-flex items-center justify-center w-16 h-16 bg-[var(--lavender)] border-[3px] border-[var(--border)] shadow-[3px_3px_0_var(--shadow-color)] mb-6"
+                    whileHover={{ rotate: [0, -10, 10, 0] }}
+                    transition={{ duration: 0.5 }}
                   >
-                    <AlertCircle className="h-4 w-4" />
-                    {errors.password.message}
-                  </motion.p>
-                )}
-              </AnimatePresence>
-            </motion.div>
+                    <Lock className="h-8 w-8 text-[#1a1a1a]" />
+                  </motion.div>
+                  <h1 className="text-2xl font-bold text-[var(--text)] mb-2">
+                    Welcome back
+                  </h1>
+                  <p className="text-sm text-[var(--text-muted)]">
+                    Sign in to unlock your vault
+                  </p>
+                </motion.div>
 
-            {/* Submit */}
-            <motion.div variants={itemVariants}>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Signing in...
-                  </>
-                ) : (
-                  <>
-                    Sign In
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </>
-                )}
-              </Button>
-            </motion.div>
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                  {/* Email */}
+                  <motion.div variants={itemVariants} className="space-y-2">
+                    <Label htmlFor="email" className="text-sm font-bold text-[var(--text)]">
+                      Email
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="you@example.com"
+                      {...register('email')}
+                      disabled={isLoading}
+                    />
+                    <AnimatePresence>
+                      {errors.email && (
+                        <motion.p
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="text-sm text-[var(--coral)] flex items-center gap-2"
+                        >
+                          <AlertCircle className="h-4 w-4" />
+                          {errors.email.message}
+                        </motion.p>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
 
-            {/* Divider */}
-            <motion.div variants={itemVariants} className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t-[2px] border-[var(--border-light)]" />
-              </div>
-              <div className="relative flex justify-center">
-                <span className="px-4 bg-[var(--surface)] text-sm text-[var(--text-muted)]">
-                  or
-                </span>
-              </div>
-            </motion.div>
+                  {/* Password */}
+                  <motion.div variants={itemVariants} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password" className="text-sm font-bold text-[var(--text)]">
+                        Password
+                      </Label>
+                      <button
+                        type="button"
+                        onClick={() => setShowForgotPassword(true)}
+                        className="text-sm text-[var(--sky)] hover:underline font-medium"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="••••••••••••"
+                      {...register('password')}
+                      disabled={isLoading}
+                    />
+                    <AnimatePresence>
+                      {errors.password && (
+                        <motion.p
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="text-sm text-[var(--coral)] flex items-center gap-2"
+                        >
+                          <AlertCircle className="h-4 w-4" />
+                          {errors.password.message}
+                        </motion.p>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
 
-            {/* Signup link */}
-            <motion.div variants={itemVariants} className="text-center">
-              <p className="text-sm text-[var(--text-muted)]">
-                Don't have an account?{' '}
-                <Link
-                  href="/signup"
-                  className="text-[var(--pink)] hover:underline font-bold"
-                >
-                  Sign up →
-                </Link>
-              </p>
-            </motion.div>
-          </form>
+                  {/* Submit */}
+                  <motion.div variants={itemVariants}>
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Signing in...
+                        </>
+                      ) : (
+                        <>
+                          Sign In
+                          <ArrowRight className="h-4 w-4 ml-2" />
+                        </>
+                      )}
+                    </Button>
+                  </motion.div>
+
+                  {/* Divider */}
+                  <motion.div variants={itemVariants} className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t-[2px] border-[var(--border-light)]" />
+                    </div>
+                    <div className="relative flex justify-center">
+                      <span className="px-4 bg-[var(--surface)] text-sm text-[var(--text-muted)]">
+                        or
+                      </span>
+                    </div>
+                  </motion.div>
+
+                  {/* Signup link */}
+                  <motion.div variants={itemVariants} className="text-center">
+                    <p className="text-sm text-[var(--text-muted)]">
+                      Don't have an account?{' '}
+                      <Link
+                        href="/signup"
+                        className="text-[var(--pink)] hover:underline font-bold"
+                      >
+                        Sign up →
+                      </Link>
+                    </p>
+                  </motion.div>
+                </form>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
         {/* Footer */}
@@ -286,7 +356,7 @@ export default function LoginPage() {
         >
           <Shield className="h-4 w-4 text-[var(--text-muted)]" />
           <span className="text-sm text-[var(--text-muted)]">
-            Your data is encrypted locally
+            Auto-unlocks after sign in
           </span>
         </motion.div>
       </motion.div>
