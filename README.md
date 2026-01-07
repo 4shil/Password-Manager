@@ -6,7 +6,7 @@ A secure, user-focused password manager built with **Next.js 14**, **TypeScript*
 
 ---
 
-## ✨ What's New
+##  What's New
 
 ### Neo Brutalism Design
 The entire UI has been redesigned with a **Smooth Neo Brutalism** aesthetic:
@@ -16,21 +16,21 @@ The entire UI has been redesigned with a **Smooth Neo Brutalism** aesthetic:
 - Playful, bouncy animations using Framer Motion
 - Clean, simple English text throughout
 
-### 🌗 Dark Mode
+###  Dark Mode
 Toggle between light and dark themes with smooth transitions. Preference is saved to localStorage.
 
-### 🔐 Argon2id Encryption
+###  Argon2id Encryption
 Upgraded from PBKDF2 to **Argon2id** — the strongest password-based key derivation function available:
 - **64 MB memory** (resistant to GPU attacks)
 - **4 parallel threads**
 - **3 iterations**
 
-### 🔑 Simplified Authentication
+### Simplified Authentication
 Single password for both login AND encryption — no separate "master password" required. Your vault unlocks automatically when you sign in.
 
 ---
 
-## 🔒 Security Model
+##  Security Model
 
 ```
 Password → Supabase Auth + Argon2id → KEK → Unwrap Vault Key → Decrypt Items
@@ -50,7 +50,7 @@ Password → Supabase Auth + Argon2id → KEK → Unwrap Vault Key → Decrypt I
 
 ---
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### Prerequisites
 - Node.js 18+
@@ -91,7 +91,7 @@ npm run dev
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 src/
@@ -115,7 +115,7 @@ src/
 
 ---
 
-## 🎨 Design System
+##  Design System
 
 ### Colors
 | Token | Light Mode | Dark Mode |
@@ -137,7 +137,7 @@ src/
 
 ---
 
-## 🔧 Configuration
+##  Configuration
 
 | Environment Variable | Default | Description |
 |---------------------|---------|-------------|
@@ -152,7 +152,7 @@ src/
 
 ---
 
-## 🛠️ Scripts
+##  Scripts
 
 | Script | Description |
 |--------|-------------|
@@ -165,7 +165,7 @@ src/
 
 ---
 
-## 🗺️ Roadmap
+##  Roadmap
 
 ### Planned Features
 - [ ] Import/Export encrypted backups
@@ -179,7 +179,7 @@ src/
 
 ---
 
-## 🤝 Contributing
+##  Contributing
 
 1. Fork the repo
 2. Create a branch: `git checkout -b feature/your-feature`
@@ -190,16 +190,16 @@ For crypto changes, include security rationale and tests.
 
 ---
 
-## 📄 License
+##  License
 
 MIT — see `LICENSE` file.
 
 ---
 
-## ⚠️ Security Disclaimer
+## Security Disclaimer
 
 This project demonstrates strong client-side encryption but has not undergone a formal security audit. Do not use for critical production secrets without professional review.
 
 ---
 
-**Built with ❤️ by [4shil](https://github.com/4shil)**
+**Built by [4shil](https://github.com/4shil)**

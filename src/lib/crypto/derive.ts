@@ -62,7 +62,7 @@ export async function deriveKEK(
     // Import the derived hash as a CryptoKey for AES-GCM
     const kek = await crypto.subtle.importKey(
       'raw',
-      hash,
+      hash as unknown as BufferSource,
       { name: 'AES-GCM', length: KEY_LENGTH * 8 },
       false, // Not extractable
       ['wrapKey', 'unwrapKey']
@@ -105,7 +105,7 @@ export async function deriveEncryptionKey(
 
   return await crypto.subtle.importKey(
     'raw',
-    hash,
+    hash as unknown as BufferSource,
     { name: 'AES-GCM', length: KEY_LENGTH * 8 },
     true, // Extractable for encryption/decryption
     ['encrypt', 'decrypt']

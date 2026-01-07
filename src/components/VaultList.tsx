@@ -10,7 +10,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { toast } from './ui/use-toast';
 import { Plus, Search, Grid3X3, List, Shield, Loader2, X, Archive } from 'lucide-react';
-import type { VaultItem, DecryptedVaultItem } from '@/lib/validators';
+import type { VaultItem, DecryptedVaultItem, VaultItemPayload } from '@/lib/validators';
 
 export function VaultList() {
   const [items, setItems] = useState<DecryptedVaultItem[]>([]);
@@ -44,7 +44,7 @@ export function VaultList() {
       const decrypted: DecryptedVaultItem[] = [];
       for (const item of rawItems ?? []) {
         try {
-          const payload = await decryptPayload(vaultKey, item.enc_payload, item.iv);
+          const payload = await decryptPayload<VaultItemPayload>(vaultKey, item.enc_payload, item.iv);
           decrypted.push({
             id: item.id,
             user_id: item.user_id,
@@ -125,7 +125,7 @@ export function VaultList() {
         <VaultEditorDialog
           open={editorOpen}
           onClose={handleClose}
-          item={editingItem}
+          item={editingItem || undefined}
         />
       </div>
     );
@@ -245,7 +245,7 @@ export function VaultList() {
       <VaultEditorDialog
         open={editorOpen}
         onClose={handleClose}
-        item={editingItem}
+        item={editingItem || undefined}
       />
     </div>
   );
