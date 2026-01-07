@@ -1,13 +1,13 @@
 'use client';
 
 import * as React from 'react';
-import { motion } from 'framer-motion';
+import { HTMLMotionProps, motion } from 'framer-motion';
 
 import { cn } from '@/lib/cn';
 
 const Card = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
+  HTMLMotionProps<'div'>
 >(({ className, ...props }, ref) => (
   <motion.div
     ref={ref}

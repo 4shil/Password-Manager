@@ -45,7 +45,7 @@ export function Header({ onLock }: HeaderProps) {
     updateTime();
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [getRemainingTime]);
 
   const handleLock = () => {
     lockVault();
@@ -70,7 +70,7 @@ export function Header({ onLock }: HeaderProps) {
     <motion.header
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.4 }}
       className="sticky top-0 z-40 w-full border-b-[3px] border-[var(--border)] bg-[var(--surface)]"
     >
       <div className="container mx-auto px-4">

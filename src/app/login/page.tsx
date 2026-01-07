@@ -16,7 +16,7 @@ import { supabase } from '@/lib/supabase/client';
 import { deriveKEK } from '@/lib/crypto/derive';
 import { unwrapVaultKey } from '@/lib/crypto/keys';
 import { setVaultKey } from '@/lib/crypto/memory';
-import { Lock, Loader2, ArrowRight, AlertCircle, Shield, Key } from 'lucide-react';
+import { Lock, Loader2, ArrowRight, AlertCircle, Shield, Key, Eye, EyeOff } from 'lucide-react';
 import { ForgotPasswordDialog } from '@/components/ForgotPasswordDialog';
 
 const containerVariants = {
@@ -37,6 +37,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState<'form' | 'unlocking'>('form');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [shake, setShake] = useState(false);
 
   const {
@@ -278,13 +279,23 @@ export default function LoginPage() {
                         Forgot password?
                       </button>
                     </div>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="••••••••••••"
-                      {...register('password')}
-                      disabled={isLoading}
-                    />
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="••••••••••••"
+                        className="pr-12"
+                        {...register('password')}
+                        disabled={isLoading}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+                      >
+                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      </button>
+                    </div>
                     <AnimatePresence>
                       {errors.password && (
                         <motion.p

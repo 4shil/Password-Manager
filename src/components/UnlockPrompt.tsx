@@ -28,7 +28,7 @@ import {
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Button } from './ui/button';
-import { Lock, Loader2, Shield, Key, AlertCircle, Fingerprint } from 'lucide-react';
+import { Lock, Loader2, Shield, Key, AlertCircle, Fingerprint, Eye, EyeOff } from 'lucide-react';
 
 interface UnlockPromptProps {
   open: boolean;
@@ -39,6 +39,7 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
   const router = useRouter();
   const [unlocking, setUnlocking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const [shake, setShake] = useState(false);
   const [lockoutStatus, setLockoutStatus] = useState<{
     locked: boolean;
@@ -254,14 +255,24 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
               <Label htmlFor="password" className="text-sm font-bold text-[var(--text)]">
                 Password
               </Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••••••••••"
-                autoFocus
-                {...register('password')}
-                disabled={unlocking || lockoutStatus.locked}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••••••••••"
+                  autoFocus
+                  className="pr-12"
+                  {...register('password')}
+                  disabled={unlocking || lockoutStatus.locked}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
 
               <AnimatePresence>
                 {(errors.password || error) && (

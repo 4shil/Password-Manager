@@ -15,7 +15,7 @@ import { signupSchema, type SignupInput } from '@/lib/validators';
 import { supabase } from '@/lib/supabase/client';
 import { generateSalt, deriveKEK, getArgon2Params } from '@/lib/crypto/derive';
 import { generateVaultKey, wrapVaultKey } from '@/lib/crypto/keys';
-import { Shield, AlertCircle, Key, Loader2, Sparkles, Lock, CheckCircle } from 'lucide-react';
+import { Shield, AlertCircle, Key, Loader2, Sparkles, Lock, CheckCircle, Eye, EyeOff } from 'lucide-react';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -51,6 +51,8 @@ export default function SignupPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState<'form' | 'encrypting'>('form');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const {
     register,
@@ -292,13 +294,23 @@ export default function SignupPage() {
                     <Label htmlFor="password" className="text-sm font-bold text-[var(--text)]">
                       Password
                     </Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="••••••••••••"
-                      {...register('password')}
-                      disabled={isLoading}
-                    />
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="••••••••••••"
+                        className="pr-12"
+                        {...register('password')}
+                        disabled={isLoading}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+                      >
+                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      </button>
+                    </div>
 
                     {/* Strength meter */}
                     <AnimatePresence>
@@ -357,13 +369,23 @@ export default function SignupPage() {
                     <Label htmlFor="confirmPassword" className="text-sm font-bold text-[var(--text)]">
                       Confirm Password
                     </Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      placeholder="••••••••••••"
-                      {...register('confirmPassword')}
-                      disabled={isLoading}
-                    />
+                    <div className="relative">
+                      <Input
+                        id="confirmPassword"
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        placeholder="••••••••••••"
+                        className="pr-12"
+                        {...register('confirmPassword')}
+                        disabled={isLoading}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      </button>
+                    </div>
                     <AnimatePresence>
                       {errors.confirmPassword && (
                         <motion.p

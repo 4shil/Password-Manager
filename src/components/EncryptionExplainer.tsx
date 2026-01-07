@@ -35,7 +35,7 @@ function EncryptionStep({ number, title, description, icon, color, animation, de
                 visible: {
                     opacity: 1,
                     x: 0,
-                    transition: { duration: 0.6, delay, ease: [0.16, 1, 0.3, 1] }
+                    transition: { duration: 0.6, delay }
                 }
             }}
             className="relative"

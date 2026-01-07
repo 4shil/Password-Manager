@@ -118,15 +118,15 @@ export function getTimeUntilLock(): number {
 /**
  * Get formatted time remaining until auto-lock
  */
-export function getFormattedTimeUntilLock(): string {
-  const ms = getTimeUntilLock();
+export function getFormattedTimeUntilLock(ms?: number): string {
+  const timeMs = ms !== undefined ? ms : getTimeUntilLock();
 
-  if (ms === 0) {
+  if (timeMs === 0) {
     return 'Locked';
   }
 
-  const minutes = Math.floor(ms / 60000);
-  const seconds = Math.floor((ms % 60000) / 1000);
+  const minutes = Math.floor(timeMs / 60000);
+  const seconds = Math.floor((timeMs % 60000) / 1000);
 
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
@@ -174,5 +174,10 @@ export function updateActivity(): void {
 }
 
 // Aliases for backwards compatibility
-export const getRemainingTime = getTimeUntilLock;
-export const formatTime = getFormattedTimeUntilLock;
+export function getRemainingTime(): number {
+  return getTimeUntilLock();
+}
+
+export function formatTime(ms?: number): string {
+  return getFormattedTimeUntilLock(ms);
+}
