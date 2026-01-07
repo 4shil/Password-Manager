@@ -44,7 +44,7 @@ export function VaultList() {
       const decrypted: DecryptedVaultItem[] = [];
       for (const item of rawItems ?? []) {
         try {
-          const payload = await decryptPayload(item.encrypted_data, vaultKey);
+          const payload = await decryptPayload(vaultKey, item.enc_payload, item.iv);
           decrypted.push({
             id: item.id,
             user_id: item.user_id,
@@ -162,8 +162,8 @@ export function VaultList() {
             <button
               onClick={() => setViewMode('grid')}
               className={`p-2 transition-colors ${viewMode === 'grid'
-                  ? 'bg-[oklch(0.55_0.28_280)] text-white'
-                  : 'text-[oklch(0.45_0.02_270)] hover:text-white'
+                ? 'bg-[oklch(0.55_0.28_280)] text-white'
+                : 'text-[oklch(0.45_0.02_270)] hover:text-white'
                 }`}
             >
               <Grid3X3 className="h-4 w-4" />
@@ -171,8 +171,8 @@ export function VaultList() {
             <button
               onClick={() => setViewMode('list')}
               className={`p-2 transition-colors ${viewMode === 'list'
-                  ? 'bg-[oklch(0.55_0.28_280)] text-white'
-                  : 'text-[oklch(0.45_0.02_270)] hover:text-white'
+                ? 'bg-[oklch(0.55_0.28_280)] text-white'
+                : 'text-[oklch(0.45_0.02_270)] hover:text-white'
                 }`}
             >
               <List className="h-4 w-4" />
