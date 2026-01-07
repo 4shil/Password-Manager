@@ -127,7 +127,7 @@ export default function SignupPage() {
         toast({
           title: 'Encryption setup failed',
           description: 'Your account was created but encryption setup failed. We will try again on your first login.',
-          variant: 'warning',
+          variant: 'destructive',
         });
       }
 
