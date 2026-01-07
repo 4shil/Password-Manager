@@ -1,12 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
 import { Switch } from './ui/switch';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Copy, RefreshCw, Check, Sparkles, Settings2, Zap } from 'lucide-react';
+import { Copy, RefreshCw, Check, Zap, Settings2 } from 'lucide-react';
 import { toast } from './ui/use-toast';
 import { generateRandomBytes } from '@/lib/utils';
 
@@ -30,7 +27,6 @@ export function PasswordGenerator({ onGenerate }: PasswordGeneratorProps) {
   const generatePassword = () => {
     setGenerating(true);
 
-    // Brief delay for visual effect
     setTimeout(() => {
       let charset = '';
       if (options.lowercase) charset += 'abcdefghijklmnopqrstuvwxyz';
@@ -40,8 +36,8 @@ export function PasswordGenerator({ onGenerate }: PasswordGeneratorProps) {
 
       if (charset.length === 0) {
         toast({
-          title: 'ERROR',
-          description: 'Select at least one character type',
+          title: 'Oops!',
+          description: 'Pick at least one character type',
           variant: 'destructive',
         });
         setGenerating(false);
@@ -71,13 +67,13 @@ export function PasswordGenerator({ onGenerate }: PasswordGeneratorProps) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
       toast({
-        title: 'COPIED',
+        title: 'Copied!',
         description: 'Password copied to clipboard',
       });
     } catch (err) {
       toast({
-        title: 'COPY FAILED',
-        description: 'Unable to access clipboard',
+        title: 'Copy failed',
+        description: 'Could not access clipboard',
         variant: 'destructive',
       });
     }
@@ -95,25 +91,25 @@ export function PasswordGenerator({ onGenerate }: PasswordGeneratorProps) {
 
   const entropy = getEntropy();
   const entropyLevel =
-    entropy < 40 ? { label: 'WEAK', color: 'oklch(0.60 0.25 25)' } :
-      entropy < 60 ? { label: 'FAIR', color: 'oklch(0.75 0.18 85)' } :
-        entropy < 80 ? { label: 'STRONG', color: 'oklch(0.75 0.18 195)' } :
-          { label: 'MAXIMUM', color: 'oklch(0.72 0.19 155)' };
+    entropy < 40 ? { label: 'Weak', color: '#FF8A80', bg: '#FFE5E2' } :
+      entropy < 60 ? { label: 'Okay', color: '#FFB74D', bg: '#FFF3E0' } :
+        entropy < 80 ? { label: 'Strong', color: '#7DD3FC', bg: '#E0F7FF' } :
+          { label: 'Super Strong', color: '#A0F5D3', bg: '#E8FFF5' };
 
   return (
-    <div className="p-6 bg-[oklch(0.08_0.01_270)] border-2 border-[oklch(0.55_0.28_280)]">
+    <div className="p-6 bg-white border-[3px] border-[#1a1a1a] shadow-[6px_6px_0_#1a1a1a]">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 flex items-center justify-center border-2 border-[oklch(0.55_0.28_280)]">
-            <Zap className="h-5 w-5 text-[oklch(0.75_0.18_195)]" />
+          <div className="w-12 h-12 flex items-center justify-center bg-[#FFE156] border-[3px] border-[#1a1a1a] shadow-[3px_3px_0_#1a1a1a]">
+            <Zap className="h-6 w-6 text-[#1a1a1a]" />
           </div>
           <div>
-            <h3 className="text-lg font-bold uppercase tracking-widest text-white">
-              GENERATOR
+            <h3 className="text-lg font-bold text-[#1a1a1a]">
+              Password Generator
             </h3>
-            <p className="text-xs font-mono text-[oklch(0.45_0.02_270)]">
-              CRYPTOGRAPHIC RANDOMNESS
+            <p className="text-sm text-[#666666]">
+              Create strong passwords instantly
             </p>
           </div>
         </div>
@@ -123,17 +119,17 @@ export function PasswordGenerator({ onGenerate }: PasswordGeneratorProps) {
           onClick={() => setShowOptions(!showOptions)}
         >
           <Settings2 className="h-4 w-4 mr-2" />
-          {showOptions ? 'HIDE' : 'OPTIONS'}
+          {showOptions ? 'Hide' : 'Options'}
         </Button>
       </div>
 
       {/* Length slider */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-xs uppercase tracking-widest text-[oklch(0.45_0.02_270)]">
-            LENGTH
+          <span className="text-sm font-bold text-[#1a1a1a]">
+            Length
           </span>
-          <span className="text-2xl font-bold font-mono text-[oklch(0.75_0.18_195)]">
+          <span className="text-2xl font-bold text-[#1a1a1a] bg-[#FFE156] px-3 py-1 border-[2px] border-[#1a1a1a]">
             {length}
           </span>
         </div>
@@ -143,12 +139,12 @@ export function PasswordGenerator({ onGenerate }: PasswordGeneratorProps) {
           max="64"
           value={length}
           onChange={(e) => setLength(parseInt(e.target.value))}
-          className="w-full h-2 bg-[oklch(0.15_0.02_270)] appearance-none cursor-pointer"
+          className="w-full h-3 bg-[#F5F5F5] appearance-none cursor-pointer border-[2px] border-[#1a1a1a]"
           style={{
-            background: `linear-gradient(to right, oklch(0.55 0.28 280) 0%, oklch(0.55 0.28 280) ${((length - 8) / 56) * 100}%, oklch(0.15 0.02 270) ${((length - 8) / 56) * 100}%, oklch(0.15 0.02 270) 100%)`
+            background: `linear-gradient(to right, #FFE156 0%, #FFE156 ${((length - 8) / 56) * 100}%, #F5F5F5 ${((length - 8) / 56) * 100}%, #F5F5F5 100%)`
           }}
         />
-        <div className="flex justify-between mt-2 text-xs font-mono text-[oklch(0.35_0.02_270)]">
+        <div className="flex justify-between mt-2 text-sm font-medium text-[#666666]">
           <span>8</span>
           <span>64</span>
         </div>
@@ -156,15 +152,18 @@ export function PasswordGenerator({ onGenerate }: PasswordGeneratorProps) {
 
       {/* Options */}
       {showOptions && (
-        <div className="grid grid-cols-2 gap-4 mb-6 p-4 bg-[oklch(0.05_0.005_270)] border border-[oklch(0.20_0.02_270)]">
+        <div className="grid grid-cols-2 gap-4 mb-6 p-4 bg-[#FEF9EF] border-[3px] border-[#1a1a1a]">
           {[
-            { key: 'lowercase', label: 'a-z' },
-            { key: 'uppercase', label: 'A-Z' },
-            { key: 'digits', label: '0-9' },
-            { key: 'symbols', label: '!@#$' },
-          ].map(({ key, label }) => (
-            <div key={key} className="flex items-center justify-between">
-              <span className="text-xs font-mono text-[oklch(0.45_0.02_270)]">{label}</span>
+            { key: 'lowercase', label: 'a-z', desc: 'Lowercase' },
+            { key: 'uppercase', label: 'A-Z', desc: 'Uppercase' },
+            { key: 'digits', label: '0-9', desc: 'Numbers' },
+            { key: 'symbols', label: '!@#', desc: 'Symbols' },
+          ].map(({ key, label, desc }) => (
+            <div key={key} className="flex items-center justify-between p-2 bg-white border-[2px] border-[#1a1a1a]">
+              <div>
+                <span className="text-lg font-bold text-[#1a1a1a]">{label}</span>
+                <p className="text-xs text-[#666666]">{desc}</p>
+              </div>
               <Switch
                 checked={options[key as keyof typeof options]}
                 onCheckedChange={(checked) =>
@@ -179,28 +178,33 @@ export function PasswordGenerator({ onGenerate }: PasswordGeneratorProps) {
       {/* Generated password display */}
       {password && (
         <div className="mb-6">
-          <div className="flex items-center gap-3 p-4 bg-[oklch(0.05_0.005_270)] border border-[oklch(0.20_0.02_270)]">
-            <code className={`flex-1 text-sm font-mono break-all ${generating ? 'animate-shimmer text-[oklch(0.45_0.02_270)]' : 'text-[oklch(0.72_0.19_155)]'}`}>
+          <div className="flex items-center gap-3 p-4 bg-[#FEF9EF] border-[3px] border-[#1a1a1a]">
+            <code className={`flex-1 text-sm font-mono break-all ${generating ? 'opacity-50' : 'text-[#1a1a1a]'}`}>
               {generating ? '████████████████████' : password}
             </code>
             <Button
               variant="ghost"
               size="icon"
               onClick={copyPassword}
-              className={`h-8 w-8 shrink-0 ${copied ? 'text-[oklch(0.72_0.19_155)]' : ''}`}
+              className={`h-10 w-10 shrink-0 ${copied ? 'bg-[#A0F5D3]' : ''}`}
             >
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             </Button>
           </div>
 
           {/* Entropy indicator */}
-          <div className="flex items-center justify-between mt-3 text-xs font-mono">
-            <span className="text-[oklch(0.45_0.02_270)]">
-              ENTROPY: <span className="text-white">{entropy}</span> bits
-            </span>
-            <span style={{ color: entropyLevel.color }}>
-              {entropyLevel.label}
-            </span>
+          <div className="mt-4 p-3 border-[2px] border-[#1a1a1a]" style={{ backgroundColor: entropyLevel.bg }}>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-[#1a1a1a]">
+                Strength: <span className="font-bold">{entropy} bits</span>
+              </span>
+              <span
+                className="px-3 py-1 text-sm font-bold border-[2px] border-[#1a1a1a]"
+                style={{ backgroundColor: entropyLevel.color }}
+              >
+                {entropyLevel.label}
+              </span>
+            </div>
           </div>
         </div>
       )}
@@ -212,7 +216,7 @@ export function PasswordGenerator({ onGenerate }: PasswordGeneratorProps) {
         disabled={generating}
       >
         <RefreshCw className={`h-4 w-4 mr-2 ${generating ? 'animate-spin' : ''}`} />
-        {password ? 'REGENERATE' : 'GENERATE'}
+        {password ? 'Generate New' : 'Generate Password'}
       </Button>
 
       {/* Use button */}
@@ -222,14 +226,14 @@ export function PasswordGenerator({ onGenerate }: PasswordGeneratorProps) {
           onClick={() => {
             onGenerate(password);
             toast({
-              title: 'APPLIED',
-              description: 'Password set in form',
+              title: 'Done!',
+              description: 'Password added to form',
             });
           }}
           className="w-full mt-3"
         >
           <Check className="h-4 w-4 mr-2" />
-          USE THIS PASSWORD
+          Use This Password
         </Button>
       )}
     </div>

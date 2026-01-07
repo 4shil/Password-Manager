@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { CopyButton } from './CopyButton';
 import { Eye, EyeOff, Edit, Trash2, ExternalLink, Globe, User, Key, FileText, MoreVertical, Hash } from 'lucide-react';
@@ -35,7 +34,7 @@ export function VaultItemCard({ item, onEdit, onDelete }: VaultItemCardProps) {
   }, [showPassword]);
 
   const handleDelete = async () => {
-    if (!confirm('CONFIRM DELETION: This action cannot be undone.')) return;
+    if (!confirm('Are you sure you want to delete this item? This cannot be undone.')) return;
 
     setDeleting(true);
     try {
@@ -47,15 +46,15 @@ export function VaultItemCard({ item, onEdit, onDelete }: VaultItemCardProps) {
       if (error) throw error;
 
       toast({
-        title: 'ITEM DELETED',
-        description: 'Record purged from vault.',
+        title: 'Deleted',
+        description: 'Item removed from your vault',
       });
 
       onDelete();
     } catch (err) {
       toast({
-        title: 'DELETE FAILED',
-        description: 'Unable to purge record.',
+        title: 'Delete failed',
+        description: 'Could not remove item',
         variant: 'destructive',
       });
     } finally {
@@ -77,15 +76,12 @@ export function VaultItemCard({ item, onEdit, onDelete }: VaultItemCardProps) {
   const faviconUrl = getFaviconUrl(item.url);
 
   return (
-    <div className="vault-item group">
-      {/* Top accent line */}
-      <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[oklch(0.55_0.28_280)] to-[oklch(0.50_0.30_300)] opacity-0 group-hover:opacity-100 transition-opacity" />
-
+    <div className="p-6 bg-white border-[3px] border-[#1a1a1a] shadow-[6px_6px_0_#1a1a1a] transition-all duration-300 hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[8px_8px_0_#1a1a1a] group">
       {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-6">
         <div className="flex items-center gap-4 min-w-0">
           {/* Icon */}
-          <div className="relative flex-shrink-0 w-12 h-12 flex items-center justify-center border-2 border-[oklch(0.25_0.02_270)] bg-[oklch(0.08_0.01_270)] overflow-hidden">
+          <div className="relative flex-shrink-0 w-12 h-12 flex items-center justify-center bg-[#FFE156] border-[3px] border-[#1a1a1a] shadow-[2px_2px_0_#1a1a1a] overflow-hidden">
             {faviconUrl ? (
               <img
                 src={faviconUrl}
@@ -97,16 +93,16 @@ export function VaultItemCard({ item, onEdit, onDelete }: VaultItemCardProps) {
                 }}
               />
             ) : null}
-            <Globe className={`h-5 w-5 text-[oklch(0.45_0.02_270)] ${faviconUrl ? 'hidden' : ''}`} />
+            <Globe className={`h-5 w-5 text-[#1a1a1a] ${faviconUrl ? 'hidden' : ''}`} />
           </div>
 
           {/* Title */}
           <div className="min-w-0">
-            <h3 className="text-lg font-bold uppercase tracking-widest text-white truncate">
+            <h3 className="text-lg font-bold text-[#1a1a1a] truncate">
               {item.title}
             </h3>
             {item.username && (
-              <p className="text-xs font-mono text-[oklch(0.45_0.02_270)] truncate mt-1">
+              <p className="text-sm text-[#666666] truncate mt-1">
                 @{item.username}
               </p>
             )}
@@ -124,46 +120,46 @@ export function VaultItemCard({ item, onEdit, onDelete }: VaultItemCardProps) {
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-40 bg-[oklch(0.08_0.01_270)] border-2 border-[oklch(0.25_0.02_270)]">
-            <DropdownMenuItem onClick={() => onEdit(item)} className="gap-2 cursor-pointer">
+          <DropdownMenuContent align="end" className="w-40 bg-white border-[3px] border-[#1a1a1a] shadow-[4px_4px_0_#1a1a1a]">
+            <DropdownMenuItem onClick={() => onEdit(item)} className="gap-2 cursor-pointer font-medium">
               <Edit className="h-4 w-4" />
-              <span className="uppercase tracking-wide text-xs">Edit</span>
+              <span>Edit</span>
             </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-[oklch(0.20_0.02_270)]" />
+            <DropdownMenuSeparator className="bg-[#1a1a1a]" />
             <DropdownMenuItem
               onClick={handleDelete}
               disabled={deleting}
-              className="gap-2 cursor-pointer text-[oklch(0.60_0.25_25)]"
+              className="gap-2 cursor-pointer font-medium text-[#FF8A80]"
             >
               <Trash2 className="h-4 w-4" />
-              <span className="uppercase tracking-wide text-xs">Delete</span>
+              <span>Delete</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
       {/* Password field */}
-      <div className="space-y-4">
-        <div className="p-4 bg-[oklch(0.05_0.005_270)] border border-[oklch(0.20_0.02_270)]">
+      <div className="space-y-3">
+        <div className="p-4 bg-[#FEF9EF] border-[3px] border-[#1a1a1a]">
           <div className="flex items-center gap-2 mb-2">
-            <Key className="h-3 w-3 text-[oklch(0.55_0.28_280)]" />
-            <span className="text-xs uppercase tracking-widest text-[oklch(0.55_0.28_280)]">Password</span>
+            <Key className="h-4 w-4 text-[#FF6B9D]" />
+            <span className="text-sm font-bold text-[#1a1a1a]">Password</span>
           </div>
           <div className="flex items-center gap-3">
-            <code className={`flex-1 text-sm font-mono truncate ${showPassword ? 'text-[oklch(0.72_0.19_155)]' : 'text-[oklch(0.45_0.02_270)]'}`}>
+            <code className={`flex-1 text-sm font-mono truncate ${showPassword ? 'text-[#1a1a1a]' : 'text-[#999999]'}`}>
               {showPassword ? item.password : '••••••••••••••••'}
             </code>
             <div className="flex gap-1">
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7"
+                className="h-8 w-8"
                 onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? (
-                  <EyeOff className="h-3.5 w-3.5" />
+                  <EyeOff className="h-4 w-4" />
                 ) : (
-                  <Eye className="h-3.5 w-3.5" />
+                  <Eye className="h-4 w-4" />
                 )}
               </Button>
               <CopyButton text={item.password} label="Password" />
@@ -173,10 +169,10 @@ export function VaultItemCard({ item, onEdit, onDelete }: VaultItemCardProps) {
 
         {/* Username */}
         {item.username && (
-          <div className="flex items-center justify-between p-3 border border-[oklch(0.15_0.02_270)]">
+          <div className="flex items-center justify-between p-3 bg-white border-[2px] border-[#1a1a1a]">
             <div className="flex items-center gap-2 min-w-0">
-              <User className="h-3 w-3 text-[oklch(0.45_0.02_270)] shrink-0" />
-              <span className="text-sm font-mono text-[oklch(0.75_0.02_270)] truncate">{item.username}</span>
+              <User className="h-4 w-4 text-[#666666] shrink-0" />
+              <span className="text-sm text-[#1a1a1a] truncate">{item.username}</span>
             </div>
             <CopyButton text={item.username} label="Username" />
           </div>
@@ -184,14 +180,14 @@ export function VaultItemCard({ item, onEdit, onDelete }: VaultItemCardProps) {
 
         {/* URL */}
         {item.url && (
-          <div className="flex items-center justify-between p-3 border border-[oklch(0.15_0.02_270)]">
+          <div className="flex items-center justify-between p-3 bg-white border-[2px] border-[#1a1a1a]">
             <a
               href={item.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 min-w-0 text-sm font-mono text-[oklch(0.75_0.18_195)] hover:underline truncate"
+              className="flex items-center gap-2 min-w-0 text-sm text-[#7DD3FC] hover:underline truncate font-medium"
             >
-              <Globe className="h-3 w-3 shrink-0" />
+              <Globe className="h-4 w-4 shrink-0" />
               <span className="truncate">{item.url.replace(/^https?:\/\//, '')}</span>
               <ExternalLink className="h-3 w-3 shrink-0 opacity-50" />
             </a>
@@ -201,12 +197,12 @@ export function VaultItemCard({ item, onEdit, onDelete }: VaultItemCardProps) {
 
         {/* Notes preview */}
         {item.notes && (
-          <div className="p-3 border border-[oklch(0.15_0.02_270)]">
+          <div className="p-3 bg-[#E8FFF5] border-[2px] border-[#1a1a1a]">
             <div className="flex items-center gap-2 mb-2">
-              <FileText className="h-3 w-3 text-[oklch(0.45_0.02_270)]" />
-              <span className="text-xs uppercase tracking-widest text-[oklch(0.45_0.02_270)]">Notes</span>
+              <FileText className="h-4 w-4 text-[#1a1a1a]" />
+              <span className="text-sm font-bold text-[#1a1a1a]">Notes</span>
             </div>
-            <p className="text-sm font-mono text-[oklch(0.45_0.02_270)] line-clamp-2">
+            <p className="text-sm text-[#666666] line-clamp-2">
               {item.notes}
             </p>
           </div>
@@ -214,17 +210,17 @@ export function VaultItemCard({ item, onEdit, onDelete }: VaultItemCardProps) {
 
         {/* Custom fields */}
         {item.extras && item.extras.length > 0 && (
-          <div className="pt-4 border-t border-[oklch(0.15_0.02_270)]">
+          <div className="pt-4 border-t-[2px] border-[#1a1a1a]">
             <div className="flex items-center gap-2 mb-3">
-              <Hash className="h-3 w-3 text-[oklch(0.45_0.02_270)]" />
-              <span className="text-xs uppercase tracking-widest text-[oklch(0.45_0.02_270)]">Custom Fields</span>
+              <Hash className="h-4 w-4 text-[#666666]" />
+              <span className="text-sm font-bold text-[#1a1a1a]">Custom Fields</span>
             </div>
             <div className="space-y-2">
               {item.extras.map((extra, idx) => (
-                <div key={idx} className="flex items-center justify-between p-2 bg-[oklch(0.08_0.01_270)]">
+                <div key={idx} className="flex items-center justify-between p-2 bg-[#F5F5F5] border-[2px] border-[#1a1a1a]">
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs text-[oklch(0.35_0.02_270)] uppercase tracking-wide">{extra.key}</p>
-                    <p className="text-sm font-mono text-[oklch(0.75_0.02_270)] truncate">{extra.value}</p>
+                    <p className="text-xs text-[#666666] font-medium">{extra.key}</p>
+                    <p className="text-sm text-[#1a1a1a] truncate">{extra.value}</p>
                   </div>
                   <CopyButton text={extra.value} label={extra.key} />
                 </div>
@@ -235,9 +231,9 @@ export function VaultItemCard({ item, onEdit, onDelete }: VaultItemCardProps) {
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between mt-6 pt-4 border-t border-[oklch(0.15_0.02_270)]">
-        <p className="text-xs font-mono text-[oklch(0.35_0.02_270)]">
-          UPDATED: {new Date(item.updated_at).toLocaleDateString()}
+      <div className="flex items-center justify-between mt-6 pt-4 border-t-[2px] border-[#e5e5e5]">
+        <p className="text-xs text-[#999999]">
+          Updated: {new Date(item.updated_at).toLocaleDateString()}
         </p>
         <Button
           variant="ghost"
@@ -246,7 +242,7 @@ export function VaultItemCard({ item, onEdit, onDelete }: VaultItemCardProps) {
           onClick={() => onEdit(item)}
         >
           <Edit className="h-3 w-3 mr-1" />
-          EDIT
+          Edit
         </Button>
       </div>
     </div>

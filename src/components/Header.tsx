@@ -49,8 +49,8 @@ export function Header({ onLock }: HeaderProps) {
     lockVault();
     onLock();
     toast({
-      title: 'VAULT LOCKED',
-      description: 'Session terminated. Memory wiped.',
+      title: 'Vault locked',
+      description: 'Your session has been secured',
     });
   };
 
@@ -59,74 +59,71 @@ export function Header({ onLock }: HeaderProps) {
     await supabase.auth.signOut();
     router.push('/login');
     toast({
-      title: 'DISCONNECTED',
-      description: 'Session terminated.',
+      title: 'Signed out',
+      description: 'See you next time!',
     });
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b-2 border-[oklch(0.20_0.02_270)] bg-[oklch(0.05_0.005_270)/0.9] backdrop-blur-xl">
+    <header className="sticky top-0 z-40 w-full border-b-[3px] border-[#1a1a1a] bg-white">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link href="/app" className="flex items-center gap-3 group">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-[oklch(0.55_0.28_280)] to-[oklch(0.50_0.30_300)] blur-lg opacity-0 group-hover:opacity-50 transition-opacity" />
-              <div className="relative w-9 h-9 flex items-center justify-center border-2 border-[oklch(0.55_0.28_280)]">
-                <Shield className="h-4 w-4 text-[oklch(0.75_0.18_195)]" />
-              </div>
+            <div className="w-10 h-10 flex items-center justify-center bg-[#FFE156] border-[3px] border-[#1a1a1a] shadow-[2px_2px_0_#1a1a1a] transition-all group-hover:-translate-y-0.5 group-hover:shadow-[3px_3px_0_#1a1a1a]">
+              <Shield className="h-5 w-5 text-[#1a1a1a]" />
             </div>
-            <span className="text-lg font-bold uppercase tracking-[0.15em] text-white hidden sm:block">
-              VAULT<span className="text-[oklch(0.75_0.18_195)]">_X</span>
+            <span className="text-lg font-bold text-[#1a1a1a] hidden sm:block">
+              Password<span className="text-[#FF6B9D]">Vault</span>
             </span>
           </Link>
 
           {/* Status & Actions */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {/* Auto-lock timer */}
             {remainingTime > 0 && (
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 border border-[oklch(0.25_0.02_270)] bg-[oklch(0.08_0.01_270)]">
-                <Clock className="h-3 w-3 text-[oklch(0.75_0.18_195)]" />
-                <span className="text-xs font-mono text-[oklch(0.45_0.02_270)]">
-                  AUTO-LOCK: <span className="text-white">{formatTime(remainingTime)}</span>
+              <div className="hidden sm:flex items-center gap-2 px-3 py-2 bg-[#FEF9EF] border-[2px] border-[#1a1a1a]">
+                <Clock className="h-4 w-4 text-[#666666]" />
+                <span className="text-sm text-[#666666]">
+                  Auto-lock: <span className="font-bold text-[#1a1a1a]">{formatTime(remainingTime)}</span>
                 </span>
               </div>
             )}
 
             {/* Lock button */}
-            <Button variant="ghost" size="sm" onClick={handleLock}>
+            <Button variant="outline" size="sm" onClick={handleLock}>
               <Lock className="h-4 w-4 mr-2" />
-              LOCK
+              Lock
             </Button>
 
             {/* User dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
+                <Button variant="secondary" size="sm" className="gap-2">
                   <User className="h-4 w-4" />
-                  <span className="hidden md:inline max-w-[120px] truncate font-mono text-xs">
-                    {email?.split('@')[0] || 'OPERATOR'}
+                  <span className="hidden md:inline max-w-[120px] truncate text-sm">
+                    {email?.split('@')[0] || 'User'}
                   </span>
                   <ChevronDown className="h-3 w-3 opacity-50" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 bg-[oklch(0.08_0.01_270)] border-2 border-[oklch(0.25_0.02_270)]">
-                <div className="px-3 py-2 border-b border-[oklch(0.20_0.02_270)]">
-                  <p className="text-xs font-mono text-[oklch(0.45_0.02_270)]">OPERATOR</p>
-                  <p className="text-sm font-mono text-white truncate">{email}</p>
+              <DropdownMenuContent align="end" className="w-56 bg-white border-[3px] border-[#1a1a1a] shadow-[4px_4px_0_#1a1a1a]">
+                <div className="px-3 py-2 border-b-[2px] border-[#e5e5e5]">
+                  <p className="text-xs text-[#666666]">Signed in as</p>
+                  <p className="text-sm font-bold text-[#1a1a1a] truncate">{email}</p>
                 </div>
-                <DropdownMenuItem onClick={() => router.push('/app/settings')} className="gap-2 cursor-pointer">
+                <DropdownMenuItem onClick={() => router.push('/app/settings')} className="gap-2 cursor-pointer font-medium">
                   <Settings className="h-4 w-4" />
-                  <span className="uppercase tracking-wide text-xs">Settings</span>
+                  <span>Settings</span>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-[oklch(0.20_0.02_270)]" />
-                <DropdownMenuItem onClick={handleLock} className="gap-2 cursor-pointer">
+                <DropdownMenuSeparator className="bg-[#e5e5e5]" />
+                <DropdownMenuItem onClick={handleLock} className="gap-2 cursor-pointer font-medium">
                   <Lock className="h-4 w-4" />
-                  <span className="uppercase tracking-wide text-xs">Lock Vault</span>
+                  <span>Lock Vault</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleLogout} className="gap-2 cursor-pointer text-[oklch(0.60_0.25_25)]">
+                <DropdownMenuItem onClick={handleLogout} className="gap-2 cursor-pointer font-medium text-[#FF8A80]">
                   <LogOut className="h-4 w-4" />
-                  <span className="uppercase tracking-wide text-xs">Disconnect</span>
+                  <span>Sign Out</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

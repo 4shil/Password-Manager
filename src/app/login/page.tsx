@@ -11,14 +11,14 @@ import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
 import { loginSchema, type LoginInput } from '@/lib/validators';
 import { supabase } from '@/lib/supabase/client';
-import { Shield, Lock, Loader2, ArrowRight, AlertTriangle } from 'lucide-react';
+import { Lock, Loader2, ArrowRight, AlertCircle, Shield } from 'lucide-react';
 import { ForgotPasswordDialog } from '@/components/ForgotPasswordDialog';
 
 export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [glitch, setGlitch] = useState(false);
+  const [shake, setShake] = useState(false);
 
   const {
     register,
@@ -38,12 +38,11 @@ export default function LoginPage() {
       });
 
       if (error) {
-        // Trigger glitch effect on error
-        setGlitch(true);
-        setTimeout(() => setGlitch(false), 500);
+        setShake(true);
+        setTimeout(() => setShake(false), 500);
 
         toast({
-          title: 'ACCESS DENIED',
+          title: 'Login failed',
           description: error.message,
           variant: 'destructive',
         });
@@ -51,19 +50,19 @@ export default function LoginPage() {
       }
 
       toast({
-        title: 'ACCESS GRANTED',
-        description: 'Welcome back, operator.',
+        title: 'Welcome back!',
+        description: 'You are now logged in',
       });
 
       router.push('/app');
       router.refresh();
     } catch (err) {
-      setGlitch(true);
-      setTimeout(() => setGlitch(false), 500);
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
 
       toast({
-        title: 'SYSTEM ERROR',
-        description: 'Connection failed. Retry.',
+        title: 'Something went wrong',
+        description: 'Please try again',
         variant: 'destructive',
       });
     } finally {
@@ -72,73 +71,66 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-cyber-mesh relative overflow-hidden">
-      {/* Noise overlay */}
-      <div className="fixed inset-0 pointer-events-none z-50 opacity-[0.03]"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`
-        }}
-      />
-
-      {/* Grid overlay */}
-      <div className="fixed inset-0 pointer-events-none opacity-[0.03] bg-cyber-grid" />
-
-      {/* Glow orb */}
+    <div className="min-h-screen flex items-center justify-center p-6 bg-[#FFFDF5] relative overflow-hidden">
+      {/* Background pattern */}
       <div
-        className="absolute w-[500px] h-[500px] rounded-full opacity-20 blur-[100px]"
+        className="fixed inset-0 pointer-events-none opacity-30"
         style={{
-          background: 'radial-gradient(circle, oklch(0.55 0.28 280) 0%, transparent 70%)',
-          left: '50%',
-          top: '50%',
-          transform: 'translate(-50%, -50%)',
+          backgroundImage: 'radial-gradient(circle, #1a1a1a 1px, transparent 1px)',
+          backgroundSize: '24px 24px'
         }}
       />
+
+      {/* Decorative shapes */}
+      <div className="absolute top-20 left-20 w-32 h-32 bg-[#FFE156] border-[3px] border-[#1a1a1a] rotate-12 hidden md:block" />
+      <div className="absolute bottom-20 right-20 w-24 h-24 bg-[#FF6B9D] border-[3px] border-[#1a1a1a] -rotate-6 hidden md:block" />
+      <div className="absolute top-40 right-40 w-16 h-16 bg-[#A0F5D3] border-[3px] border-[#1a1a1a] rotate-45 hidden md:block" />
 
       {/* Login card */}
-      <div className={`relative z-10 w-full max-w-md ${glitch ? 'animate-glitch' : ''}`}>
-        {/* Terminal header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-[oklch(0.08_0.01_270)] border-2 border-b-0 border-[oklch(0.25_0.02_270)]">
-          <div className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full bg-[oklch(0.60_0.25_25)]" />
-            <div className="w-3 h-3 rounded-full bg-[oklch(0.75_0.18_85)]" />
-            <div className="w-3 h-3 rounded-full bg-[oklch(0.72_0.19_155)]" />
+      <div className={`relative z-10 w-full max-w-md ${shake ? 'animate-shake' : ''}`}>
+        {/* Card header bar */}
+        <div className="flex items-center justify-between px-4 py-3 bg-[#FFE156] border-[3px] border-b-0 border-[#1a1a1a]">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-[#FF8A80] border border-[#1a1a1a]" />
+            <div className="w-3 h-3 rounded-full bg-[#FFE156] border border-[#1a1a1a]" />
+            <div className="w-3 h-3 rounded-full bg-[#A0F5D3] border border-[#1a1a1a]" />
           </div>
-          <span className="text-xs font-mono text-[oklch(0.45_0.02_270)]">
-            VAULT_X://AUTH/LOGIN
+          <span className="text-sm font-bold text-[#1a1a1a]">
+            Password Manager
           </span>
         </div>
 
-        {/* Card */}
-        <div className="p-8 bg-[oklch(0.08_0.01_270)/0.9] backdrop-blur-xl border-2 border-[oklch(0.25_0.02_270)]">
+        {/* Card body */}
+        <div className="p-8 bg-white border-[3px] border-[#1a1a1a] shadow-[8px_8px_0_#1a1a1a]">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 border-2 border-[oklch(0.55_0.28_280)] mb-6">
-              <Lock className="h-8 w-8 text-[oklch(0.75_0.18_195)]" />
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-[#C4B5FD] border-[3px] border-[#1a1a1a] shadow-[3px_3px_0_#1a1a1a] mb-6">
+              <Lock className="h-8 w-8 text-[#1a1a1a]" />
             </div>
-            <h1 className="text-2xl font-bold uppercase tracking-widest text-white mb-2">
-              AUTHENTICATE
+            <h1 className="text-2xl font-bold text-[#1a1a1a] mb-2">
+              Welcome back
             </h1>
-            <p className="text-sm font-mono text-[oklch(0.45_0.02_270)]">
-              Enter credentials to access vault
+            <p className="text-sm text-[#666666]">
+              Sign in to access your vault
             </p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Email */}
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-xs uppercase tracking-widest text-[oklch(0.45_0.02_270)]">
-                IDENTIFIER
+              <Label htmlFor="email" className="text-sm font-bold text-[#1a1a1a]">
+                Email
               </Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="operator@vault-x.io"
+                placeholder="you@example.com"
                 {...register('email')}
                 disabled={isLoading}
               />
               {errors.email && (
-                <p className="text-xs text-[oklch(0.60_0.25_25)] font-mono flex items-center gap-2">
-                  <AlertTriangle className="h-3 w-3" />
+                <p className="text-sm text-[#FF8A80] flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
                   {errors.email.message}
                 </p>
               )}
@@ -147,15 +139,15 @@ export default function LoginPage() {
             {/* Password */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-xs uppercase tracking-widest text-[oklch(0.45_0.02_270)]">
-                  PASSPHRASE
+                <Label htmlFor="password" className="text-sm font-bold text-[#1a1a1a]">
+                  Password
                 </Label>
                 <button
                   type="button"
                   onClick={() => setShowForgotPassword(true)}
-                  className="text-xs font-mono text-[oklch(0.55_0.28_280)] hover:text-[oklch(0.75_0.18_195)] transition-colors"
+                  className="text-sm text-[#7DD3FC] hover:underline font-medium"
                 >
-                  RESET_KEY
+                  Forgot password?
                 </button>
               </div>
               <Input
@@ -166,8 +158,8 @@ export default function LoginPage() {
                 disabled={isLoading}
               />
               {errors.password && (
-                <p className="text-xs text-[oklch(0.60_0.25_25)] font-mono flex items-center gap-2">
-                  <AlertTriangle className="h-3 w-3" />
+                <p className="text-sm text-[#FF8A80] flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
                   {errors.password.message}
                 </p>
               )}
@@ -178,11 +170,11 @@ export default function LoginPage() {
               {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  AUTHENTICATING...
+                  Signing in...
                 </>
               ) : (
                 <>
-                  ACCESS VAULT
+                  Sign In
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </>
               )}
@@ -191,24 +183,24 @@ export default function LoginPage() {
             {/* Divider */}
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-[oklch(0.25_0.02_270)]" />
+                <div className="w-full border-t-[2px] border-[#e5e5e5]" />
               </div>
               <div className="relative flex justify-center">
-                <span className="px-4 bg-[oklch(0.08_0.01_270)] text-xs font-mono text-[oklch(0.35_0.02_270)]">
-                  OR
+                <span className="px-4 bg-white text-sm text-[#999999]">
+                  or
                 </span>
               </div>
             </div>
 
             {/* Signup link */}
             <div className="text-center">
-              <p className="text-sm font-mono text-[oklch(0.45_0.02_270)]">
-                NO VAULT?{' '}
+              <p className="text-sm text-[#666666]">
+                Don't have an account?{' '}
                 <Link
                   href="/signup"
-                  className="text-[oklch(0.75_0.18_195)] hover:underline"
+                  className="text-[#FF6B9D] hover:underline font-bold"
                 >
-                  INITIALIZE →
+                  Sign up →
                 </Link>
               </p>
             </div>
@@ -217,9 +209,9 @@ export default function LoginPage() {
 
         {/* Footer */}
         <div className="flex items-center justify-center gap-2 mt-6">
-          <Shield className="h-4 w-4 text-[oklch(0.35_0.02_270)]" />
-          <span className="text-xs font-mono text-[oklch(0.35_0.02_270)]">
-            ZERO-KNOWLEDGE PROTOCOL
+          <Shield className="h-4 w-4 text-[#999999]" />
+          <span className="text-sm text-[#999999]">
+            Your data is encrypted locally
           </span>
         </div>
       </div>

@@ -27,10 +27,10 @@ import {
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Button } from './ui/button';
-import { Lock, Loader2, Shield, Key, AlertTriangle, Fingerprint } from 'lucide-react';
+import { Lock, Loader2, Shield, Key, AlertCircle, Fingerprint } from 'lucide-react';
 
 const unlockSchema = z.object({
-  masterPassword: z.string().min(1, 'Master password is required'),
+  masterPassword: z.string().min(1, 'Please enter your master password'),
 });
 
 interface UnlockPromptProps {
@@ -42,8 +42,7 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
   const router = useRouter();
   const [unlocking, setUnlocking] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [glitch, setGlitch] = useState(false);
-  const [decryptingAnimation, setDecryptingAnimation] = useState('');
+  const [shake, setShake] = useState(false);
   const [lockoutStatus, setLockoutStatus] = useState<{
     locked: boolean;
     remainingMs: number;
@@ -70,21 +69,6 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
     return () => clearInterval(interval);
   }, []);
 
-  // Animate decryption glyphs
-  useEffect(() => {
-    if (unlocking) {
-      const chars = '0123456789ABCDEF▓░▒█';
-      const interval = setInterval(() => {
-        let result = '';
-        for (let i = 0; i < 24; i++) {
-          result += chars[Math.floor(Math.random() * chars.length)];
-        }
-        setDecryptingAnimation(result);
-      }, 50);
-      return () => clearInterval(interval);
-    }
-  }, [unlocking]);
-
   const onSubmit = async (data: { masterPassword: string }) => {
     if (unlocking) return;
 
@@ -102,8 +86,8 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError || !userData.user) {
         toast({
-          title: 'NOT AUTHENTICATED',
-          description: 'Session expired. Re-authenticate.',
+          title: 'Session expired',
+          description: 'Please sign in again',
           variant: 'destructive',
         });
         router.push('/login');
@@ -118,8 +102,8 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
 
       if (keyError || !keyData) {
         toast({
-          title: 'VAULT NOT FOUND',
-          description: 'Initialize vault first.',
+          title: 'Vault not found',
+          description: 'Please set up your vault first',
           variant: 'destructive',
         });
         router.push('/setup-vault');
@@ -130,7 +114,7 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
       const ivB64 = keyData.vk_iv ?? keyData.iv ?? keyData.vkIv;
 
       if (!wrappedB64 || !ivB64) {
-        throw new Error('Vault corrupted (missing wrapped key)');
+        throw new Error('Vault data is corrupted');
       }
 
       const kek = await deriveKEK(
@@ -143,17 +127,17 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
       try {
         vaultKey = await unwrapVaultKey(wrappedB64, ivB64, kek);
       } catch (e) {
-        // Glitch effect on failed attempt
-        setGlitch(true);
-        setTimeout(() => setGlitch(false), 500);
+        // Shake effect on failed attempt
+        setShake(true);
+        setTimeout(() => setShake(false), 500);
 
         const attemptResult = recordFailedAttempt();
         setLockoutStatus(attemptResult);
 
         if (attemptResult.justLocked) {
-          setError(`LOCKOUT ENGAGED: ${formatRemainingTime(attemptResult.remainingMs)}`);
+          setError(`Too many attempts. Try again in ${formatRemainingTime(attemptResult.remainingMs)}`);
         } else {
-          setError(`INVALID KEY // ${attemptResult.remainingAttempts} attempts remaining`);
+          setError(`Wrong password. ${attemptResult.remainingAttempts} tries left`);
         }
 
         throw new Error('Incorrect master password');
@@ -163,8 +147,8 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
       setVaultKey(vaultKey);
 
       toast({
-        title: 'VAULT UNLOCKED',
-        description: 'Decryption successful.',
+        title: 'Vault unlocked!',
+        description: 'Welcome back',
       });
 
       reset();
@@ -172,8 +156,8 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
     } catch (err: any) {
       if (!error && err?.message !== 'Incorrect master password') {
         toast({
-          title: 'DECRYPTION FAILED',
-          description: err?.message ?? 'Invalid master key',
+          title: 'Could not unlock',
+          description: err?.message ?? 'Please check your password',
           variant: 'destructive',
         });
       }
@@ -184,61 +168,58 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
 
   return (
     <Dialog open={open} onOpenChange={() => { }}>
-      <DialogContent className="sm:max-w-md bg-[oklch(0.08_0.01_270)/0.95] backdrop-blur-xl border-2 border-[oklch(0.25_0.02_270)] p-0" hideClose>
-        {/* Terminal header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[oklch(0.25_0.02_270)]">
-          <div className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full bg-[oklch(0.60_0.25_25)]" />
-            <div className="w-3 h-3 rounded-full bg-[oklch(0.75_0.18_85)]" />
-            <div className="w-3 h-3 rounded-full bg-[oklch(0.72_0.19_155)]" />
+      <DialogContent className="sm:max-w-md bg-white border-[3px] border-[#1a1a1a] shadow-[8px_8px_0_#1a1a1a] p-0" hideClose>
+        {/* Header bar */}
+        <div className="flex items-center justify-between px-4 py-3 bg-[#C4B5FD] border-b-[3px] border-[#1a1a1a]">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-[#FF8A80] border border-[#1a1a1a]" />
+            <div className="w-3 h-3 rounded-full bg-[#FFE156] border border-[#1a1a1a]" />
+            <div className="w-3 h-3 rounded-full bg-[#A0F5D3] border border-[#1a1a1a]" />
           </div>
-          <span className="text-xs font-mono text-[oklch(0.45_0.02_270)]">
-            VAULT_X://DECRYPT
+          <span className="text-sm font-bold text-[#1a1a1a]">
+            Unlock Vault
           </span>
         </div>
 
-        <div className={`p-8 ${glitch ? 'animate-glitch' : ''}`}>
+        <div className={`p-8 ${shake ? 'animate-shake' : ''}`}>
           <DialogHeader className="text-center space-y-4 mb-8">
-            {/* Lock icon with glow */}
-            <div className="mx-auto relative">
+            {/* Lock icon */}
+            <div className="mx-auto">
               <div
-                className={`w-20 h-20 flex items-center justify-center border-2 ${lockoutStatus.locked
-                    ? 'border-[oklch(0.60_0.25_25)] bg-[oklch(0.60_0.25_25)/0.1]'
-                    : 'border-[oklch(0.55_0.28_280)]'
+                className={`w-20 h-20 flex items-center justify-center border-[3px] border-[#1a1a1a] shadow-[3px_3px_0_#1a1a1a] ${lockoutStatus.locked
+                    ? 'bg-[#FF8A80]'
+                    : unlocking
+                      ? 'bg-[#7DD3FC]'
+                      : 'bg-[#FFE156]'
                   }`}
               >
                 {lockoutStatus.locked ? (
-                  <AlertTriangle className="h-10 w-10 text-[oklch(0.60_0.25_25)]" />
+                  <AlertCircle className="h-10 w-10 text-[#1a1a1a]" />
                 ) : unlocking ? (
-                  <Fingerprint className="h-10 w-10 text-[oklch(0.75_0.18_195)] animate-pulse" />
+                  <Fingerprint className="h-10 w-10 text-[#1a1a1a] animate-pulse" />
                 ) : (
-                  <Lock className="h-10 w-10 text-[oklch(0.75_0.18_195)]" />
+                  <Lock className="h-10 w-10 text-[#1a1a1a]" />
                 )}
               </div>
-              {!lockoutStatus.locked && (
-                <div className="absolute inset-0 animate-pulse-glow pointer-events-none"
-                  style={{ boxShadow: '0 0 40px oklch(0.55 0.28 280 / 0.3)' }}
-                />
-              )}
             </div>
 
-            <DialogTitle className="text-2xl font-bold uppercase tracking-widest text-white">
-              {lockoutStatus.locked ? 'LOCKED OUT' : unlocking ? 'DECRYPTING' : 'VAULT LOCKED'}
+            <DialogTitle className="text-2xl font-bold text-[#1a1a1a]">
+              {lockoutStatus.locked ? 'Too many attempts' : unlocking ? 'Unlocking...' : 'Vault is locked'}
             </DialogTitle>
-            <DialogDescription className="text-sm font-mono text-[oklch(0.45_0.02_270)]">
+            <DialogDescription className="text-sm text-[#666666]">
               {lockoutStatus.locked
-                ? `Wait ${formatRemainingTime(lockoutStatus.remainingMs)} to retry`
+                ? `Please wait ${formatRemainingTime(lockoutStatus.remainingMs)} before trying again`
                 : unlocking
-                  ? decryptingAnimation
-                  : 'Enter master key to decrypt vault'
+                  ? 'Decrypting your data...'
+                  : 'Enter your master password to continue'
               }
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="masterPassword" className="text-xs uppercase tracking-widest text-[oklch(0.55_0.28_280)]">
-                MASTER KEY
+              <Label htmlFor="masterPassword" className="text-sm font-bold text-[#1a1a1a]">
+                Master Password
               </Label>
               <Input
                 id="masterPassword"
@@ -247,22 +228,21 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
                 autoFocus
                 {...register('masterPassword')}
                 disabled={unlocking || lockoutStatus.locked}
-                className="border-[oklch(0.55_0.28_280)]"
               />
 
               {/* Error */}
               {(errors.masterPassword || error) && (
-                <p className="text-xs text-[oklch(0.60_0.25_25)] font-mono flex items-center gap-2">
-                  <AlertTriangle className="h-3 w-3" />
+                <p className="text-sm text-[#FF8A80] flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
                   {errors.masterPassword?.message || error}
                 </p>
               )}
 
               {/* Attempts warning */}
               {!lockoutStatus.locked && lockoutStatus.remainingAttempts < 5 && lockoutStatus.remainingAttempts > 0 && (
-                <p className="text-xs text-[oklch(0.75_0.18_85)] font-mono flex items-center gap-2">
-                  <AlertTriangle className="h-3 w-3" />
-                  {lockoutStatus.remainingAttempts} ATTEMPTS REMAINING
+                <p className="text-sm text-[#FFB74D] flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
+                  {lockoutStatus.remainingAttempts} attempts remaining
                 </p>
               )}
             </div>
@@ -276,26 +256,26 @@ export function UnlockPrompt({ open, onUnlock }: UnlockPromptProps) {
               {unlocking ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  DECRYPTING...
+                  Unlocking...
                 </>
               ) : lockoutStatus.locked ? (
                 <>
                   <Lock className="h-4 w-4 mr-2" />
-                  LOCKED ({formatRemainingTime(lockoutStatus.remainingMs)})
+                  Locked ({formatRemainingTime(lockoutStatus.remainingMs)})
                 </>
               ) : (
                 <>
                   <Key className="h-4 w-4 mr-2" />
-                  UNLOCK VAULT
+                  Unlock Vault
                 </>
               )}
             </Button>
 
             {/* Security note */}
-            <div className="flex items-center justify-center gap-2 pt-4 border-t border-[oklch(0.20_0.02_270)]">
-              <Shield className="h-3 w-3 text-[oklch(0.35_0.02_270)]" />
-              <span className="text-xs font-mono text-[oklch(0.35_0.02_270)]">
-                ZERO-KNOWLEDGE • CLIENT-SIDE ONLY
+            <div className="flex items-center justify-center gap-2 pt-4 border-t-[2px] border-[#e5e5e5]">
+              <Shield className="h-4 w-4 text-[#999999]" />
+              <span className="text-sm text-[#999999]">
+                Your data is encrypted locally
               </span>
             </div>
           </form>

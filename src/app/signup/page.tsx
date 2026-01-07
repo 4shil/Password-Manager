@@ -13,10 +13,10 @@ import { signupSchema, type SignupInput } from '@/lib/validators';
 import { supabase } from '@/lib/supabase/client';
 import { generateSalt, deriveKEK } from '@/lib/crypto/derive';
 import { generateVaultKey, wrapVaultKey } from '@/lib/crypto/keys';
-import { Shield, AlertTriangle, Key, Loader2, Sparkles, ArrowRight, Lock } from 'lucide-react';
+import { Shield, AlertCircle, Key, Loader2, Sparkles, Lock } from 'lucide-react';
 
-// Password entropy calculator
-function calculateEntropy(password: string): number {
+// Password strength calculator
+function calculateStrength(password: string): number {
   let poolSize = 0;
   if (/[a-z]/.test(password)) poolSize += 26;
   if (/[A-Z]/.test(password)) poolSize += 26;
@@ -25,18 +25,16 @@ function calculateEntropy(password: string): number {
   return Math.round(Math.log2(Math.pow(poolSize || 1, password.length)));
 }
 
-function getEntropyLevel(entropy: number): { label: string; color: string; width: string } {
-  if (entropy < 40) return { label: 'WEAK', color: 'oklch(0.60 0.25 25)', width: '25%' };
-  if (entropy < 60) return { label: 'FAIR', color: 'oklch(0.75 0.18 85)', width: '50%' };
-  if (entropy < 80) return { label: 'STRONG', color: 'oklch(0.75 0.18 195)', width: '75%' };
-  return { label: 'MAXIMUM', color: 'oklch(0.72 0.19 155)', width: '100%' };
+function getStrengthLevel(strength: number): { label: string; color: string; bg: string; width: string } {
+  if (strength < 40) return { label: 'Weak', color: '#FF8A80', bg: '#FFE5E2', width: '25%' };
+  if (strength < 60) return { label: 'Okay', color: '#FFB74D', bg: '#FFF3E0', width: '50%' };
+  if (strength < 80) return { label: 'Strong', color: '#7DD3FC', bg: '#E0F7FF', width: '75%' };
+  return { label: 'Very Strong', color: '#A0F5D3', bg: '#E8FFF5', width: '100%' };
 }
 
 export default function SignupPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [step, setStep] = useState(1);
-  const [glyphAnimation, setGlyphAnimation] = useState('');
 
   const {
     register,
@@ -48,21 +46,8 @@ export default function SignupPage() {
   });
 
   const masterPassword = watch('masterPassword') || '';
-  const entropy = calculateEntropy(masterPassword);
-  const entropyLevel = getEntropyLevel(entropy);
-
-  // Animate crypto glyphs
-  useEffect(() => {
-    const chars = '0123456789ABCDEF';
-    const interval = setInterval(() => {
-      let result = '';
-      for (let i = 0; i < 32; i++) {
-        result += chars[Math.floor(Math.random() * chars.length)];
-      }
-      setGlyphAnimation(result);
-    }, 100);
-    return () => clearInterval(interval);
-  }, []);
+  const strength = calculateStrength(masterPassword);
+  const strengthLevel = getStrengthLevel(strength);
 
   const onSubmit = async (data: SignupInput) => {
     setIsLoading(true);
@@ -76,7 +61,7 @@ export default function SignupPage() {
 
       if (authError) {
         toast({
-          title: 'INITIALIZATION FAILED',
+          title: 'Signup failed',
           description: authError.message,
           variant: 'destructive',
         });
@@ -85,8 +70,8 @@ export default function SignupPage() {
 
       if (!authData.user) {
         toast({
-          title: 'SYSTEM ERROR',
-          description: 'Failed to create operator',
+          title: 'Something went wrong',
+          description: 'Could not create account',
           variant: 'destructive',
         });
         return;
@@ -95,8 +80,8 @@ export default function SignupPage() {
       // Email confirmation required
       if (!authData.session) {
         toast({
-          title: 'VERIFICATION REQUIRED',
-          description: 'Check your email to confirm identity.',
+          title: 'Check your email',
+          description: 'We sent you a confirmation link.',
         });
         router.push('/confirm-email');
         return;
@@ -120,24 +105,24 @@ export default function SignupPage() {
 
       if (dbError) {
         toast({
-          title: 'VAULT INITIALIZATION FAILED',
-          description: dbError.message || 'Crypto setup error',
+          title: 'Setup failed',
+          description: dbError.message || 'Could not set up encryption',
           variant: 'destructive',
         });
         return;
       }
 
       toast({
-        title: 'VAULT INITIALIZED',
-        description: 'Welcome to the system, operator.',
+        title: 'Account created!',
+        description: 'Welcome to your password vault.',
       });
 
       router.push('/app');
       router.refresh();
     } catch (err) {
       toast({
-        title: 'CRITICAL ERROR',
-        description: 'Initialization sequence aborted',
+        title: 'Something went wrong',
+        description: 'Please try again',
         variant: 'destructive',
       });
     } finally {
@@ -146,82 +131,66 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-cyber-mesh relative overflow-hidden">
-      {/* Noise overlay */}
-      <div className="fixed inset-0 pointer-events-none z-50 opacity-[0.03]"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`
-        }}
-      />
-
-      {/* Grid overlay */}
-      <div className="fixed inset-0 pointer-events-none opacity-[0.03] bg-cyber-grid" />
-
-      {/* Glow orb */}
+    <div className="min-h-screen flex items-center justify-center p-6 bg-[#FFFDF5] relative overflow-hidden">
+      {/* Background pattern */}
       <div
-        className="absolute w-[600px] h-[600px] rounded-full opacity-15 blur-[120px]"
+        className="fixed inset-0 pointer-events-none opacity-30"
         style={{
-          background: 'radial-gradient(circle, oklch(0.55 0.28 280) 0%, oklch(0.75 0.18 195) 50%, transparent 70%)',
-          left: '50%',
-          top: '50%',
-          transform: 'translate(-50%, -50%)',
+          backgroundImage: 'radial-gradient(circle, #1a1a1a 1px, transparent 1px)',
+          backgroundSize: '24px 24px'
         }}
       />
+
+      {/* Decorative shapes */}
+      <div className="absolute top-10 right-32 w-40 h-40 bg-[#FF6B9D] border-[3px] border-[#1a1a1a] -rotate-12 hidden md:block" />
+      <div className="absolute bottom-32 left-20 w-28 h-28 bg-[#7DD3FC] border-[3px] border-[#1a1a1a] rotate-6 hidden md:block" />
+      <div className="absolute top-1/3 left-32 w-20 h-20 bg-[#A0F5D3] border-[3px] border-[#1a1a1a] rotate-45 hidden md:block" />
 
       {/* Signup card */}
       <div className="relative z-10 w-full max-w-lg">
-        {/* Terminal header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-[oklch(0.08_0.01_270)] border-2 border-b-0 border-[oklch(0.25_0.02_270)]">
-          <div className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full bg-[oklch(0.60_0.25_25)]" />
-            <div className="w-3 h-3 rounded-full bg-[oklch(0.75_0.18_85)]" />
-            <div className="w-3 h-3 rounded-full bg-[oklch(0.72_0.19_155)]" />
+        {/* Card header bar */}
+        <div className="flex items-center justify-between px-4 py-3 bg-[#A0F5D3] border-[3px] border-b-0 border-[#1a1a1a]">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-[#FF8A80] border border-[#1a1a1a]" />
+            <div className="w-3 h-3 rounded-full bg-[#FFE156] border border-[#1a1a1a]" />
+            <div className="w-3 h-3 rounded-full bg-[#A0F5D3] border border-[#1a1a1a]" />
           </div>
-          <span className="text-xs font-mono text-[oklch(0.45_0.02_270)]">
-            VAULT_X://INIT/NEW_OPERATOR
+          <span className="text-sm font-bold text-[#1a1a1a]">
+            Create Account
           </span>
         </div>
 
-        {/* Card */}
-        <div className="p-8 bg-[oklch(0.08_0.01_270)/0.9] backdrop-blur-xl border-2 border-[oklch(0.25_0.02_270)]">
+        {/* Card body */}
+        <div className="p-8 bg-white border-[3px] border-[#1a1a1a] shadow-[8px_8px_0_#1a1a1a]">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 border-2 border-[oklch(0.75_0.18_195)] mb-6 relative">
-              <Key className="h-10 w-10 text-[oklch(0.75_0.18_195)]" />
-              <div className="absolute inset-0 animate-pulse-glow" style={{ boxShadow: '0 0 30px oklch(0.75 0.18 195 / 0.3)' }} />
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-[#FFE156] border-[3px] border-[#1a1a1a] shadow-[3px_3px_0_#1a1a1a] mb-6">
+              <Key className="h-10 w-10 text-[#1a1a1a]" />
             </div>
-            <h1 className="text-2xl font-bold uppercase tracking-widest text-white mb-2">
-              INITIALIZE VAULT
+            <h1 className="text-2xl font-bold text-[#1a1a1a] mb-2">
+              Create your vault
             </h1>
-            <p className="text-sm font-mono text-[oklch(0.45_0.02_270)]">
-              Create your zero-knowledge encryption keys
+            <p className="text-sm text-[#666666]">
+              Set up your secure password manager
             </p>
-          </div>
-
-          {/* Crypto animation */}
-          <div className="mb-8 p-3 bg-[oklch(0.05_0.005_270)] border border-[oklch(0.20_0.02_270)] overflow-hidden">
-            <div className="font-mono text-xs text-[oklch(0.35_0.02_270)] break-all">
-              <span className="text-[oklch(0.55_0.28_280)]">0x</span>
-              {glyphAnimation}
-            </div>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Email */}
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-xs uppercase tracking-widest text-[oklch(0.45_0.02_270)]">
-                OPERATOR ID
+              <Label htmlFor="email" className="text-sm font-bold text-[#1a1a1a]">
+                Email
               </Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="operator@vault-x.io"
+                placeholder="you@example.com"
                 {...register('email')}
                 disabled={isLoading}
               />
               {errors.email && (
-                <p className="text-xs text-[oklch(0.60_0.25_25)] font-mono flex items-center gap-2">
-                  <AlertTriangle className="h-3 w-3" />
+                <p className="text-sm text-[#FF8A80] flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
                   {errors.email.message}
                 </p>
               )}
@@ -229,8 +198,8 @@ export default function SignupPage() {
 
             {/* Password */}
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-xs uppercase tracking-widest text-[oklch(0.45_0.02_270)]">
-                ACCOUNT PASSPHRASE
+              <Label htmlFor="password" className="text-sm font-bold text-[#1a1a1a]">
+                Password
               </Label>
               <Input
                 id="password"
@@ -240,8 +209,8 @@ export default function SignupPage() {
                 disabled={isLoading}
               />
               {errors.password && (
-                <p className="text-xs text-[oklch(0.60_0.25_25)] font-mono flex items-center gap-2">
-                  <AlertTriangle className="h-3 w-3" />
+                <p className="text-sm text-[#FF8A80] flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
                   {errors.password.message}
                 </p>
               )}
@@ -249,8 +218,8 @@ export default function SignupPage() {
 
             {/* Confirm Password */}
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-xs uppercase tracking-widest text-[oklch(0.45_0.02_270)]">
-                CONFIRM PASSPHRASE
+              <Label htmlFor="confirmPassword" className="text-sm font-bold text-[#1a1a1a]">
+                Confirm Password
               </Label>
               <Input
                 id="confirmPassword"
@@ -260,24 +229,24 @@ export default function SignupPage() {
                 disabled={isLoading}
               />
               {errors.confirmPassword && (
-                <p className="text-xs text-[oklch(0.60_0.25_25)] font-mono flex items-center gap-2">
-                  <AlertTriangle className="h-3 w-3" />
+                <p className="text-sm text-[#FF8A80] flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
                   {errors.confirmPassword.message}
                 </p>
               )}
             </div>
 
             {/* Master Password Warning */}
-            <div className="p-4 border-2 border-[oklch(0.75_0.18_85)/0.5] bg-[oklch(0.75_0.18_85)/0.1]">
+            <div className="p-4 bg-[#FFF3E0] border-[3px] border-[#1a1a1a]">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="h-5 w-5 text-[oklch(0.75_0.18_85)] shrink-0 mt-0.5" />
+                <AlertCircle className="h-5 w-5 text-[#FFB74D] shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-bold uppercase tracking-widest text-[oklch(0.75_0.18_85)] mb-1">
-                    CRITICAL
+                  <p className="text-sm font-bold text-[#1a1a1a] mb-1">
+                    Important
                   </p>
-                  <p className="text-xs font-mono text-[oklch(0.45_0.02_270)]">
-                    Your <span className="text-white">MASTER KEY</span> encrypts all vault data.
-                    It <span className="text-[oklch(0.60_0.25_25)]">CANNOT BE RECOVERED</span> if lost.
+                  <p className="text-sm text-[#666666]">
+                    Your <span className="font-bold">Master Password</span> encrypts all your data.
+                    If you forget it, <span className="text-[#FF8A80] font-bold">we cannot recover it</span>.
                   </p>
                 </div>
               </div>
@@ -285,8 +254,8 @@ export default function SignupPage() {
 
             {/* Master Password */}
             <div className="space-y-2">
-              <Label htmlFor="masterPassword" className="text-xs uppercase tracking-widest text-[oklch(0.55_0.28_280)]">
-                MASTER ENCRYPTION KEY
+              <Label htmlFor="masterPassword" className="text-sm font-bold text-[#FF6B9D]">
+                Master Password
               </Label>
               <Input
                 id="masterPassword"
@@ -294,36 +263,38 @@ export default function SignupPage() {
                 placeholder="••••••••••••••••"
                 {...register('masterPassword')}
                 disabled={isLoading}
-                className="border-[oklch(0.55_0.28_280)]"
+                className="border-[#FF6B9D]"
               />
 
-              {/* Entropy meter */}
+              {/* Strength meter */}
               {masterPassword && (
                 <div className="space-y-2">
-                  <div className="h-1 bg-[oklch(0.15_0.02_270)] overflow-hidden">
+                  <div className="h-2 bg-[#F5F5F5] border-[2px] border-[#1a1a1a] overflow-hidden">
                     <div
                       className="h-full transition-all duration-300"
                       style={{
-                        width: entropyLevel.width,
-                        backgroundColor: entropyLevel.color,
-                        boxShadow: `0 0 10px ${entropyLevel.color}`
+                        width: strengthLevel.width,
+                        backgroundColor: strengthLevel.color,
                       }}
                     />
                   </div>
-                  <div className="flex items-center justify-between text-xs font-mono">
-                    <span className="text-[oklch(0.45_0.02_270)]">
-                      ENTROPY: <span className="text-white">{entropy}</span> bits
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-[#666666]">
+                      Strength: <span className="font-bold text-[#1a1a1a]">{strength} bits</span>
                     </span>
-                    <span style={{ color: entropyLevel.color }}>
-                      {entropyLevel.label}
+                    <span
+                      className="font-bold px-2 py-0.5 border-[2px] border-[#1a1a1a]"
+                      style={{ backgroundColor: strengthLevel.color }}
+                    >
+                      {strengthLevel.label}
                     </span>
                   </div>
                 </div>
               )}
 
               {errors.masterPassword && (
-                <p className="text-xs text-[oklch(0.60_0.25_25)] font-mono flex items-center gap-2">
-                  <AlertTriangle className="h-3 w-3" />
+                <p className="text-sm text-[#FF8A80] flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
                   {errors.masterPassword.message}
                 </p>
               )}
@@ -331,8 +302,8 @@ export default function SignupPage() {
 
             {/* Confirm Master Password */}
             <div className="space-y-2">
-              <Label htmlFor="confirmMasterPassword" className="text-xs uppercase tracking-widest text-[oklch(0.55_0.28_280)]">
-                CONFIRM MASTER KEY
+              <Label htmlFor="confirmMasterPassword" className="text-sm font-bold text-[#FF6B9D]">
+                Confirm Master Password
               </Label>
               <Input
                 id="confirmMasterPassword"
@@ -340,40 +311,40 @@ export default function SignupPage() {
                 placeholder="••••••••••••••••"
                 {...register('confirmMasterPassword')}
                 disabled={isLoading}
-                className="border-[oklch(0.55_0.28_280)]"
+                className="border-[#FF6B9D]"
               />
               {errors.confirmMasterPassword && (
-                <p className="text-xs text-[oklch(0.60_0.25_25)] font-mono flex items-center gap-2">
-                  <AlertTriangle className="h-3 w-3" />
+                <p className="text-sm text-[#FF8A80] flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
                   {errors.confirmMasterPassword.message}
                 </p>
               )}
             </div>
 
             {/* Submit */}
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full" variant="pink" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  GENERATING KEYS...
+                  Creating account...
                 </>
               ) : (
                 <>
                   <Sparkles className="h-4 w-4 mr-2" />
-                  INITIALIZE VAULT
+                  Create Account
                 </>
               )}
             </Button>
 
             {/* Login link */}
-            <div className="text-center pt-4 border-t border-[oklch(0.25_0.02_270)]">
-              <p className="text-sm font-mono text-[oklch(0.45_0.02_270)]">
-                EXISTING OPERATOR?{' '}
+            <div className="text-center pt-4 border-t-[2px] border-[#e5e5e5]">
+              <p className="text-sm text-[#666666]">
+                Already have an account?{' '}
                 <Link
                   href="/login"
-                  className="text-[oklch(0.75_0.18_195)] hover:underline"
+                  className="text-[#7DD3FC] hover:underline font-bold"
                 >
-                  AUTHENTICATE →
+                  Sign in →
                 </Link>
               </p>
             </div>
@@ -382,9 +353,9 @@ export default function SignupPage() {
 
         {/* Footer */}
         <div className="flex items-center justify-center gap-2 mt-6">
-          <Lock className="h-4 w-4 text-[oklch(0.35_0.02_270)]" />
-          <span className="text-xs font-mono text-[oklch(0.35_0.02_270)]">
-            CLIENT-SIDE ENCRYPTION ONLY
+          <Lock className="h-4 w-4 text-[#999999]" />
+          <span className="text-sm text-[#999999]">
+            Your passwords are encrypted on your device
           </span>
         </div>
       </div>
