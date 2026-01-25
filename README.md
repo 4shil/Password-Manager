@@ -76,11 +76,7 @@ npm install
 cp .env.local.example .env.local
 ```
 
-Edit `.env.local`:
-```env
-NEXT_PUBLIC_SUPABASE_URL=your-project-url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-```
+Edit `.env.local` with your Supabase credentials from the dashboard.
 
 ### 4. Run
 
