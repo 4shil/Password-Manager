@@ -199,7 +199,3 @@ This project demonstrates strong client-side encryption but has not undergone a 
 ---
 
 **Built by [4shil](https://github.com/4shil)**
-
-📧 **Email:** [ashilklal11@gmail.com](mailto:ashilklal11@gmail.com)  
-🐦 **X (Twitter):** [@4sh_il](https://x.com/4sh_il)  
-💻 **GitHub:** [github.com/4shil/Password-Manager](https://github.com/4shil/Password-Manager)
