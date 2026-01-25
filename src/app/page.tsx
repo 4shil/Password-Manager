@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { EncryptionExplainer } from '@/components/EncryptionExplainer';
-import { Shield, Lock, Key, Eye, Fingerprint, Zap, ArrowRight, ChevronDown, Sparkles } from 'lucide-react';
+import { Shield, Lock, Key, Eye, Fingerprint, Zap, ArrowRight, ChevronDown, Sparkles, Github, Twitter, Mail } from 'lucide-react';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -422,6 +422,35 @@ export default function LandingPage() {
             </div>
             <span className="text-sm font-bold text-[var(--text)]">PasswordVault</span>
           </div>
+
+          <div className="flex items-center gap-4">
+             <a
+              href="mailto:ashilklal11@gmail.com"
+              className="p-2 hover:bg-[var(--mint)] border-[2px] border-transparent hover:border-[var(--border)] hover:shadow-[2px_2px_0_var(--shadow-color)] transition-all rounded-md"
+              aria-label="Email"
+            >
+              <Mail className="h-5 w-5 text-[var(--text)]" />
+            </a>
+            <a
+              href="https://x.com/4sh_il"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2 hover:bg-[var(--sky)] border-[2px] border-transparent hover:border-[var(--border)] hover:shadow-[2px_2px_0_var(--shadow-color)] transition-all rounded-md"
+              aria-label="X (Twitter)"
+            >
+              <Twitter className="h-5 w-5 text-[var(--text)]" />
+            </a>
+            <a
+              href="https://github.com/4shil/Password-Manager"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2 hover:bg-[var(--pink)] border-[2px] border-transparent hover:border-[var(--border)] hover:shadow-[2px_2px_0_var(--shadow-color)] transition-all rounded-md"
+              aria-label="GitHub"
+            >
+              <Github className="h-5 w-5 text-[var(--text)]" />
+            </a>
+          </div>
+
           <p className="text-sm text-[var(--text-muted)]">
             © 2026 PasswordVault • Your passwords, totally safe.
           </p>
